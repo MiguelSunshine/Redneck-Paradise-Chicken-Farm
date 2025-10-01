@@ -1,0 +1,7 @@
+{
+  "name": "Chicken Farm Manager",
+  "description": "A comprehensive application for managing chickens, ducks, sponsors, and egg logs on a farm. It includes features for data management, layout customization, and image uploads directly from the device camera.",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}
