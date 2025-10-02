@@ -1005,20 +1005,6 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!animal) return;
     
         const sponsor = animal.sponsorId ? state.sponsors.find(s => s.id === animal.sponsorId) : null;
-        const fallbackImageUrl = `https://placehold.co/300x200/cccccc/4A2E2E?text=${encodeURIComponent(animal.name)}`;
-        let imageUrl = animal.imageUrl || fallbackImageUrl;
-    
-        if (animal.hasCustomImage) {
-            try {
-                const blob = await getImage(animal.id);
-                if (blob) {
-                    imageUrl = createManagedObjectURL(blob);
-                }
-            } catch (e) {
-                console.error(e);
-            }
-        }
-    
         const borderColor = sponsor ? sponsorshipColors[sponsor.level] : '#BDC3C7';
         const ringIndicatorHtml = renderRingIndicator(animal) || '<p class="text-sm text-gray-500 mt-1">Kennzeichnung: Blank</p>';
         const sponsorInfoHtml = sponsor
@@ -1026,12 +1012,8 @@ document.addEventListener('DOMContentLoaded', () => {
             : '<p>Dieses Tier hat noch keinen Paten.</p>';
     
         const imageContainerHtml = `
-            <div class="relative w-48 h-48 mx-auto">
-                <img src="${imageUrl}" alt="${animal.name}" class="detail-image w-48 h-48 object-cover rounded-full border-4" style="border-color:${borderColor}">
-                <button id="edit-image-btn" class="absolute bottom-0 right-0 bg-white dark:bg-gray-700 p-2 rounded-full shadow-lg border border-gray-200 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-6 w-6 text-gray-700 dark:text-gray-200"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>
-                </button>
-                <input type="file" id="detail-image-input" class="hidden" accept="image/*">
+            <div id="image-container-placeholder" class="relative w-48 h-48 mx-auto flex items-center justify-center bg-gray-200 dark:bg-gray-700 rounded-full">
+                <span class="text-gray-500">Laden...</span>
             </div>`;
 
         const content = `
@@ -1050,10 +1032,36 @@ document.addEventListener('DOMContentLoaded', () => {
                 </div>
             </div>`;
     
-        openModal(content, modal => {
+        openModal(content, async modal => {
             modal.querySelector('#back-to-list-btn').addEventListener('click', () => history.back());
             modal.querySelector('#edit-from-detail-btn').addEventListener('click', () => renderEditAnimalModal(animalId));
             modal.querySelector('#delete-from-detail-btn').addEventListener('click', () => deleteAnimal(animalId, true));
+
+            const fallbackImageUrl = `https://placehold.co/300x200/cccccc/4A2E2E?text=${encodeURIComponent(animal.name)}`;
+            let imageUrl = animal.imageUrl || fallbackImageUrl;
+        
+            if (animal.hasCustomImage) {
+                try {
+                    const blob = await getImage(animal.id);
+                    if (blob) {
+                        imageUrl = createManagedObjectURL(blob);
+                    }
+                } catch (e) {
+                    console.error(e);
+                }
+            }
+
+            const finalImageContainerHtml = `
+                <div class="relative w-48 h-48 mx-auto">
+                    <img src="${imageUrl}" alt="${animal.name}" class="detail-image w-48 h-48 object-cover rounded-full border-4" style="border-color:${borderColor}">
+                    <button id="edit-image-btn" class="absolute bottom-0 right-0 bg-white dark:bg-gray-700 p-2 rounded-full shadow-lg border border-gray-200 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-6 w-6 text-gray-700 dark:text-gray-200"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>
+                    </button>
+                    <input type="file" id="detail-image-input" class="hidden" accept="image/*">
+                </div>`;
+            
+            const placeholder = modal.querySelector('#image-container-placeholder');
+            if(placeholder) placeholder.outerHTML = finalImageContainerHtml;
 
             const imageInput = modal.querySelector('#detail-image-input');
             modal.querySelector('#edit-image-btn').addEventListener('click', () => imageInput.click());
@@ -1067,13 +1075,26 @@ document.addEventListener('DOMContentLoaded', () => {
                     const crop = await showConfirmation("Möchtest du das Bild zuschneiden?");
 
                     const processBlob = async (blob) => {
+                        await saveImage(animal.id, blob);
+                        animal.hasCustomImage = true;
+                        delete animal.imageUrl;
+                        await saveState();
+                        showToast('Bild erfolgreich aktualisiert!');
+                    };
+                    
+                    const handleBlob = async (blob, fromCropper) => {
                         try {
-                            await saveImage(animal.id, blob);
-                            animal.hasCustomImage = true;
-                            delete animal.imageUrl;
-                            await saveState();
-                            showToast('Bild erfolgreich aktualisiert!');
-                            renderAnimalDetailModal(animal.id);
+                            await processBlob(blob);
+                            if (fromCropper) {
+                                const onPopState = () => {
+                                    window.removeEventListener('popstate', onPopState);
+                                    setTimeout(() => renderAnimalDetailModal(animal.id), 100);
+                                };
+                                window.addEventListener('popstate', onPopState);
+                                history.back();
+                            } else {
+                                renderAnimalDetailModal(animal.id);
+                            }
                         } catch (error) {
                             console.error("Image update error:", error);
                             showAlert("Bild konnte nicht aktualisiert werden.");
@@ -1082,11 +1103,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
                     if (crop) {
                         openCropperModal(imageUrl, (croppedBlob) => {
-                            processBlob(croppedBlob);
-                            history.back(); // close cropper modal
+                            handleBlob(croppedBlob, true);
                         });
                     } else {
-                        processBlob(file);
+                        handleBlob(file, false);
                     }
                 };
                 reader.readAsDataURL(file);
@@ -1166,43 +1186,20 @@ document.addEventListener('DOMContentLoaded', () => {
     async function renderSponsorDetailModal(sponsorId) {
         const sponsor = state.sponsors.find(s => s.id == sponsorId);
         if (!sponsor) return;
-    
-        let imageContentHtml;
-        let hasImage = false;
-        if (sponsor.hasCustomImage) {
-            try {
-                const blob = await getImage(sponsor.id);
-                if (blob) {
-                    const url = createManagedObjectURL(blob);
-                    imageContentHtml = `<img src="${url}" alt="${sponsor.name}" class="detail-image w-48 h-48 object-cover rounded-full border-4" style="border-color:${sponsorshipColors[sponsor.level]}">`;
-                    hasImage = true;
-                }
-            } catch (e) {
-                console.error(e);
-            }
-        }
 
-        if (!hasImage) {
-            imageContentHtml = `<div class="w-48 h-48 rounded-full border-4 flex items-center justify-center" style="border-color:${sponsorshipColors[sponsor.level]};background-color:${sponsorshipColors[sponsor.level]};"><span class="text-white font-bold text-7xl">${sponsor.name.charAt(0)}</span></div>`;
-        }
-
-        const imageContainerHtml = `
-            <div class="relative w-48 h-48 mx-auto">
-                ${imageContentHtml}
-                <button id="edit-image-btn" class="absolute bottom-0 right-0 bg-white dark:bg-gray-700 p-2 rounded-full shadow-lg border border-gray-200 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-6 w-6 text-gray-700 dark:text-gray-200"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>
-                </button>
-                <input type="file" id="detail-image-input" class="hidden" accept="image/*">
-            </div>`;
-    
         const sponsoredAnimals = state.animals.filter(a => a.sponsorId === sponsor.id);
         const animalsHtml = sponsoredAnimals.length > 0
             ? `<ul>${sponsoredAnimals.map(an => `<li>- ${an.name} (${an.species === 'chicken' ? 'Huhn' : 'Ente'})</li>`).join('')}</ul>`
             : '<p>Dieser Pate hat noch keine Tiere.</p>';
-    
+            
+        const imageContainerPlaceholder = `
+            <div id="image-container-placeholder" class="relative w-48 h-48 mx-auto flex items-center justify-center bg-gray-200 dark:bg-gray-700 rounded-full">
+                <span class="text-gray-500">Laden...</span>
+            </div>`;
+
         const content = `
             <div class="text-center">
-                ${imageContainerHtml}
+                ${imageContainerPlaceholder}
                 <h2 class="text-3xl font-bold mt-4">${sponsor.name}</h2>
                 <p class="text-lg text-gray-600 dark:text-gray-400">Modell: ${sponsor.level}</p>
                 <div class="text-left bg-white/50 dark:bg-gray-800/50 p-4 rounded-lg mt-4">
@@ -1216,10 +1213,41 @@ document.addEventListener('DOMContentLoaded', () => {
                 </div>
             </div>`;
     
-        openModal(content, modal => {
+        openModal(content, async modal => {
             modal.querySelector('#back-to-sponsor-list-btn').addEventListener('click', () => history.back());
             modal.querySelector('#edit-sponsor-from-detail-btn').addEventListener('click', () => renderEditSponsorModal(sponsorId));
             modal.querySelector('#delete-sponsor-from-detail-btn').addEventListener('click', () => deleteSponsor(sponsorId, true));
+
+            let imageContentHtml;
+            let hasImage = false;
+            if (sponsor.hasCustomImage) {
+                try {
+                    const blob = await getImage(sponsor.id);
+                    if (blob) {
+                        const url = createManagedObjectURL(blob);
+                        imageContentHtml = `<img src="${url}" alt="${sponsor.name}" class="detail-image w-48 h-48 object-cover rounded-full border-4" style="border-color:${sponsorshipColors[sponsor.level]}">`;
+                        hasImage = true;
+                    }
+                } catch (e) {
+                    console.error(e);
+                }
+            }
+
+            if (!hasImage) {
+                imageContentHtml = `<div class="w-48 h-48 rounded-full border-4 flex items-center justify-center" style="border-color:${sponsorshipColors[sponsor.level]};background-color:${sponsorshipColors[sponsor.level]};"><span class="text-white font-bold text-7xl">${sponsor.name.charAt(0)}</span></div>`;
+            }
+
+            const finalImageContainerHtml = `
+                <div class="relative w-48 h-48 mx-auto">
+                    ${imageContentHtml}
+                    <button id="edit-image-btn" class="absolute bottom-0 right-0 bg-white dark:bg-gray-700 p-2 rounded-full shadow-lg border border-gray-200 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-6 w-6 text-gray-700 dark:text-gray-200"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>
+                    </button>
+                    <input type="file" id="detail-image-input" class="hidden" accept="image/*">
+                </div>`;
+            
+            const placeholder = modal.querySelector('#image-container-placeholder');
+            if(placeholder) placeholder.outerHTML = finalImageContainerHtml;
 
             const imageInput = modal.querySelector('#detail-image-input');
             modal.querySelector('#edit-image-btn').addEventListener('click', () => imageInput.click());
@@ -1233,12 +1261,25 @@ document.addEventListener('DOMContentLoaded', () => {
                     const crop = await showConfirmation("Möchtest du das Bild zuschneiden?");
 
                     const processBlob = async (blob) => {
+                        await saveImage(sponsor.id, blob);
+                        sponsor.hasCustomImage = true;
+                        await saveState();
+                        showToast('Bild erfolgreich aktualisiert!');
+                    };
+
+                    const handleBlob = async (blob, fromCropper) => {
                         try {
-                            await saveImage(sponsor.id, blob);
-                            sponsor.hasCustomImage = true;
-                            await saveState();
-                            showToast('Bild erfolgreich aktualisiert!');
-                            renderSponsorDetailModal(sponsor.id);
+                            await processBlob(blob);
+                            if (fromCropper) {
+                                const onPopState = () => {
+                                    window.removeEventListener('popstate', onPopState);
+                                    setTimeout(() => renderSponsorDetailModal(sponsor.id), 100);
+                                };
+                                window.addEventListener('popstate', onPopState);
+                                history.back();
+                            } else {
+                                renderSponsorDetailModal(sponsor.id);
+                            }
                         } catch (error) {
                             console.error("Image update error:", error);
                             showAlert("Bild konnte nicht aktualisiert werden.");
@@ -1247,11 +1288,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
                     if (crop) {
                         openCropperModal(imageUrl, (croppedBlob) => {
-                            processBlob(croppedBlob);
-                            history.back(); // close cropper modal
+                            handleBlob(croppedBlob, true);
                         });
                     } else {
-                        processBlob(file);
+                        handleBlob(file, false);
                     }
                 };
                 reader.readAsDataURL(file);
