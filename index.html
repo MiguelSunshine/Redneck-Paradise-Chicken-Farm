@@ -839,7 +839,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 </div>
             </div>
             <div class="mt-8">
-                <h3 class="font-bold text-xl mb-2">Historie</h3>
+                <div class="flex justify-between items-center mb-2">
+                    <h3 class="font-bold text-xl">Historie</h3>
+                    <button id="add-past-egg-log-btn" class="bg-blue-500 text-white font-bold py-1 px-3 rounded-full text-sm hover:bg-blue-600">Nachtragen</button>
+                </div>
                 <div class="max-h-60 overflow-y-auto border rounded-lg p-2">
                     <table class="w-full text-left">
                         <thead>
@@ -879,7 +882,41 @@ document.addEventListener('DOMContentLoaded', () => {
                     ]
                 }
             });
+
+            modal.querySelector('#add-past-egg-log-btn').addEventListener('click', renderAddPastEggLogModal);
         });
+    }
+
+    function renderAddPastEggLogModal() {
+        const today = new Date();
+        const yesterday = new Date(today);
+        yesterday.setDate(today.getDate() - 1);
+        const maxDate = getFormattedDate(today);
+        const defaultDate = getFormattedDate(yesterday);
+
+        const content = `
+            <h2 class="text-3xl font-bold mb-4">Eier nachtragen</h2>
+            <form id="past-egg-log-form" class="space-y-4">
+                <div>
+                    <label for="past-egg-date" class="block font-semibold mb-1">Datum</label>
+                    <input type="date" id="past-egg-date" name="date" class="w-full p-2 border rounded-lg" value="${defaultDate}" max="${maxDate}" required>
+                </div>
+                <div>
+                    <label for="past-chicken-eggs" class="block font-semibold mb-1">Hühnereier 🥚</label>
+                    <input type="number" id="past-chicken-eggs" name="chicken" min="0" class="w-full p-2 border rounded-lg" placeholder="Anzahl" required>
+                </div>
+                <div>
+                    <label for="past-duck-eggs" class="block font-semibold mb-1">Enteneier 🥚</label>
+                    <input type="number" id="past-duck-eggs" name="duck" min="0" class="w-full p-2 border rounded-lg" placeholder="Anzahl" required>
+                </div>
+                <div class="pt-4">
+                    <button type="submit" class="w-full bg-green-500 text-white font-bold py-3 px-6 rounded-lg text-lg hover:bg-green-600">Speichern</button>
+                </div>
+            </form>
+        `;
+        openModal(content, (modal) => {
+            modal.querySelector('#past-egg-log-form').addEventListener('submit', handleAddPastEggLogSubmit);
+        }, { stack: true });
     }
     
     function renderFileModal() {
@@ -1455,6 +1492,37 @@ document.addEventListener('DOMContentLoaded', () => {
         e.target.reset();
     }
     
+    async function handleAddPastEggLogSubmit(e) {
+        e.preventDefault();
+        const form = e.target;
+        const date = form.elements.date.value;
+        const chickenCount = parseInt(form.elements.chicken.value) || 0;
+        const duckCount = parseInt(form.elements.duck.value) || 0;
+
+        if (!date) {
+            showAlert("Bitte wähle ein Datum aus.");
+            return;
+        }
+
+        const existingLogIndex = state.eggLogs.findIndex(log => log.date === date);
+
+        if (existingLogIndex > -1) {
+            const confirmed = await showConfirmation(`Für den ${new Date(date).toLocaleDateString('de-DE')} existiert bereits ein Eintrag. Möchtest du ihn überschreiben?`);
+            if (!confirmed) {
+                return;
+            }
+            state.eggLogs[existingLogIndex].chicken = chickenCount;
+            state.eggLogs[existingLogIndex].duck = duckCount;
+        } else {
+            state.eggLogs.push({ date: date, chicken: chickenCount, duck: duckCount });
+        }
+
+        await saveState();
+        history.back(); // Close the add-past-log modal
+        renderEggModal(); // Re-render the main egg log modal
+        showToast('Eintrag erfolgreich gespeichert!');
+    }
+
     async function handleAnimalFormSubmit(e) {
         e.preventDefault();
         const formData = new FormData(e.target);
