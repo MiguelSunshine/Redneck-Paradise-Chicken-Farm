@@ -1,3 +1,5 @@
+
+
 // FIX: Moved declare statements to the top level. `declare` cannot be used inside a function block.
 declare var Chart: any;
 declare var Cropper: any;
@@ -1416,33 +1418,48 @@ document.addEventListener('DOMContentLoaded', () => {
 
     async function addSampleData() {
         console.log("Adding sample data...");
+        const sampleSponsorImg = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgMTAwIj48Y2lyY2xlIGN4PSI1MCIgY3k9IjUwIiByPSI0NSIgZmlsbD0iI2NjY2NjYyIvPjxjaXJjbGUgY3g9IjM1IiBjeT0iNDAiIHI9IjUiIGZpbGw9IiMzMzMiLz48Y2lyY2xlIGN4PSI2NSIgY3k9IjQwIiByPSI1IiBmaWxsPSIjMzMzIi8+PHBhdGggZD0iTTMwIDY1IFEgNTAgODAgNzAgNjUiIHN0cm9rZT0iIzMzMyIgc3Ryb2tlLXdpZHRoPSI1IiBmaWxsPSJub25lIiBzdHJva2UtbGluZWNhcD0icm91bmQiLz48L3N2Zz4=';
+        const sampleChickenImg = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgMTAwIj48Y2lyY2xlIGN4PSI1MCIgY3k9IjYwIiByPSIzMCIgZmlsbD0iI0EwNTIyRCIvPjxjaXJjbGUgY3g9Ijc1IiBjeT0iNDAiIHI9IjE1IiBmaWxsPSIjQTA1MjJEIi8+PHBhdGggZD0iTTcwIDIwIFEgNzUgMTAgODAgMjAgVCA5MCAyMCIgZmlsbD0iI0ZGRDUwMCIvPjxwb2x5Z29uIHBvaW50cz0iODUsNDUgOTUsNTAgODUsNTUiIGZpbGw9IiNGRkE1MCIvPjxjaXJjbGUgY3g9IjgwIiBjeT0iMzgiIHI9IjMiIGZpbGw9IiMwMDAiLz48L3N2Zz4=';
+        const sampleDuckImg = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgMTAwIj48Y2lyY2xlIGN4PSI1MCIgY3k9IjYwIiByPSIzMCIgZmlsbD0iI0ZGRDcwMCIvPjxjaXJjbGUgY3g9Ijc1IiBjeT0iNDAiIHI9IjE1IiBmaWxsPSIjRkZENzAwIi8+PHBvbHlnb24gcG9pbnRzPSI4NSw0NSAxMDAsNDggMTAwLDUyIDg1LDU1IiBmaWxsPSIjRkZBNTAwIi8+PGNpcmNsZSBjeD0iODAiIGN5PSIzOCIgcj0iMyIgZmlsbD0iIzAwMCIvPjwvc3ZnPg==';
+        
+        const imageSavePromises: Promise<void>[] = [];
         const sponsors: Sponsor[] = [];
         for (let i = 1; i <= 20; i++) {
-            sponsors.push({
+            const sponsor: Sponsor = {
                 id: Date.now() + i, createdAt: Date.now() + i,
                 name: `Pate Nr. ${i}`, level: ["Silber", "Gold", "King Edition"][i % 3] as "Silber" | "Gold" | "King Edition",
-                hasCustomImage: false
-            });
+                hasCustomImage: true
+            };
+            imageSavePromises.push(
+                base64ToBlob(sampleSponsorImg).then(blob => saveImage(sponsor.id, blob))
+            );
+            sponsors.push(sponsor);
         }
         state.sponsors = sponsors;
 
         const animals: Animal[] = [];
         let animalIdCounter = 100;
         for (let i = 1; i <= 30; i++) {
-            animals.push({
+            const animal: Animal = {
                 id: Date.now() + animalIdCounter++, createdAt: Date.now() + animalIdCounter,
                 name: `Huhn ${i}`, species: "chicken", sponsorId: null,
-                ringColor: "", ringCount: 0, hasCustomImage: false,
-                imageUrl: `https://placehold.co/300x200/cccccc/4A2E2E?text=Huhn+${i}`
-            });
+                ringColor: "", ringCount: 0, hasCustomImage: true
+            };
+            imageSavePromises.push(
+                base64ToBlob(sampleChickenImg).then(blob => saveImage(animal.id, blob))
+            );
+            animals.push(animal);
         }
         for (let i = 1; i <= 7; i++) {
-            animals.push({
+            const animal: Animal = {
                 id: Date.now() + animalIdCounter++, createdAt: Date.now() + animalIdCounter,
                 name: `Ente ${i}`, species: "duck", sponsorId: null,
-                ringColor: "", ringCount: 0, hasCustomImage: false,
-                imageUrl: `https://placehold.co/300x200/cccccc/4A2E2E?text=Ente+${i}`
-            });
+                ringColor: "", ringCount: 0, hasCustomImage: true
+            };
+            imageSavePromises.push(
+                base64ToBlob(sampleDuckImg).then(blob => saveImage(animal.id, blob))
+            );
+            animals.push(animal);
         }
         state.animals = animals;
         
@@ -1470,8 +1487,9 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         }
         
+        await Promise.all(imageSavePromises);
         await saveState(false);
-        console.log("Sample data added and saved.");
+        console.log("Sample data with images added and saved.");
     }
 
     init();
