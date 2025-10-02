@@ -7,6 +7,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let activeEditSession = {};
     let activeModalObjectUrls = new Set();
     let unsponsoredChartInstance = null;
+    let autoSaveTimer = null;
     
     let state = {
         animals: [],
@@ -103,10 +104,24 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // --- STATE MANAGEMENT ---
-    async function saveState() {
+    const AUTO_SAVE_INTERVAL = 30000; // 30 seconds
+
+    function startAutoSaveTimer() {
+        if (autoSaveTimer) {
+            clearInterval(autoSaveTimer);
+        }
+        autoSaveTimer = setInterval(() => {
+            saveState(false); // silent auto-save
+        }, AUTO_SAVE_INTERVAL);
+    }
+
+    async function saveState(showNotification = true) {
+        startAutoSaveTimer(); // Reset timer on every save action
         try {
             await saveDataToDB('appState', 'mainState', state);
-            showToast('Daten erfolgreich gespeichert!');
+            if (showNotification) {
+                showToast('Daten erfolgreich gespeichert!');
+            }
         } catch (error) {
             console.error("Failed to save state to DB:", error);
             showAlert("Speichern fehlgeschlagen! Die Daten konnten nicht in der Datenbank gesichert werden.");
@@ -189,15 +204,19 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function closeModalDOM(instant = false) {
         const allModals = document.querySelectorAll('.modal-wrapper');
-         if (allModals.length === 0) {
+        if (allModals.length === 0) {
             isModalOpen = false;
             return;
         }
         const modalWrapper = allModals[allModals.length - 1];
-
-        activeModalObjectUrls.forEach(url => URL.revokeObjectURL(url));
-        activeModalObjectUrls.clear();
-
+    
+        // BUGFIX: Only clear URLs if we are closing the last modal.
+        // This prevents breaking images in underlying modals (e.g., after cropping).
+        if (allModals.length <= 1) {
+            activeModalObjectUrls.forEach(url => URL.revokeObjectURL(url));
+            activeModalObjectUrls.clear();
+        }
+    
         if (modalWrapper) {
             if (instant) {
                 modalWrapper.remove();
@@ -209,7 +228,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
         
-        if(document.querySelectorAll('.modal-wrapper').length <= 1) {
+        if (document.querySelectorAll('.modal-wrapper').length <= 1) {
             isModalOpen = false;
         }
     }
@@ -355,7 +374,20 @@ document.addEventListener('DOMContentLoaded', () => {
         }, { stack: true });
     }
     
-    function renderRingIndicator(animal) { if (!animal.ringColor||!animal.ringCount||animal.ringCount===0) { return '<p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Kennzeichnung: Blank</p>'; } const c={'red':'#ef4444','blue':'#3b82f6','green':'#22c55e','yellow':'#eab308','black':'#1f2937','white':'#f9fafb'}; let h=''; for(let i=0;i<animal.ringCount;i++){h+=`<div class="w-3 h-3 rounded-full border border-gray-400" style="background-color: ${c[animal.ringColor]||'#9ca3af'};"></div>`;} return `<div class="flex items-center justify-center gap-1 mt-1">${h}</div>`; }
+    function renderRingIndicator(animal) {
+        if (!animal.ringColor || !animal.ringCount || animal.ringCount === 0) {
+            return '<p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Kennzeichnung: Blank</p>';
+        }
+        const colorMap = {
+            'red': '#ef4444', 'blue': '#3b82f6', 'green': '#22c55e',
+            'yellow': '#eab308', 'black': '#1f2937', 'white': '#f9fafb'
+        };
+        let html = '';
+        for (let i = 0; i < animal.ringCount; i++) {
+            html += `<div class="w-3 h-3 rounded-full border border-gray-400" style="background-color: ${colorMap[animal.ringColor] || '#9ca3af'};"></div>`;
+        }
+        return `<div class="flex items-center justify-center gap-1 mt-1">${html}</div>`;
+    }
     
     async function createAnimalCardHTML(animal, sponsorsMap) {
         const fallbackImageUrl = `https://placehold.co/300x200/cccccc/4A2E2E?text=${encodeURIComponent(animal.name)}`;
@@ -515,10 +547,95 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    function renderEggModal(){const tC=state.eggLogs.reduce((s,l)=>s+l.chicken,0);const tD=state.eggLogs.reduce((s,l)=>s+l.duck,0);const sL=[...state.eggLogs].sort((a,b)=>new Date(b.date).getTime()-new Date(a.date).getTime());let c=`<h2 class="text-3xl font-bold mb-4">Eier Logbuch</h2><div class="grid grid-cols-1 md:grid-cols-2 gap-8"><div><h3 class="font-bold text-xl mb-2">Gesamtverteilung</h3><canvas id="egg-pie-chart"></canvas></div><div><h3 class="font-bold text-xl mb-2">Produktion über Zeit</h3><canvas id="egg-line-chart"></canvas></div></div><div class="mt-8"><h3 class="font-bold text-xl mb-2">Historie</h3><div class="max-h-60 overflow-y-auto border rounded-lg p-2"><table class="w-full text-left"><thead><tr class="border-b"><th>Datum</th><th>Hühnereier</th><th>Enteneier</th></tr></thead><tbody>${sL.map(l=>`<tr><td>${new Date(l.date).toLocaleDateString('de-DE')}</td><td>${l.chicken}</td><td>${l.duck}</td></tr>`).join('')}</tbody></table></div></div>`;openModal(c,m=>{new Chart(m.querySelector('#egg-pie-chart'),{type:'pie',data:{labels:['Hühnereier','Enteneier'],datasets:[{data:[tC,tD],backgroundColor:['#FFC107','#87CEEB']}]}});const ll=sL.slice(0,10).reverse().map(l=>new Date(l.date).toLocaleDateString('de-DE',{day:'2-digit',month:'2-digit'}));const lc=sL.slice(0,10).reverse().map(l=>l.chicken);const ld=sL.slice(0,10).reverse().map(l=>l.duck);new Chart(m.querySelector('#egg-line-chart'),{type:'line',data:{labels:ll,datasets:[{label:'Hühnereier',data:lc,borderColor:'#FFC107',tension:0.1},{label:'Enteneier',data:ld,borderColor:'#87CEEB',tension:0.1}]}});});}
+    function renderEggModal() {
+        const totalChickenEggs = state.eggLogs.reduce((sum, log) => sum + log.chicken, 0);
+        const totalDuckEggs = state.eggLogs.reduce((sum, log) => sum + log.duck, 0);
+        const sortedLogs = [...state.eggLogs].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+        
+        const content = `
+            <h2 class="text-3xl font-bold mb-4">Eier Logbuch</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div>
+                    <h3 class="font-bold text-xl mb-2">Gesamtverteilung</h3>
+                    <canvas id="egg-pie-chart"></canvas>
+                </div>
+                <div>
+                    <h3 class="font-bold text-xl mb-2">Produktion über Zeit</h3>
+                    <canvas id="egg-line-chart"></canvas>
+                </div>
+            </div>
+            <div class="mt-8">
+                <h3 class="font-bold text-xl mb-2">Historie</h3>
+                <div class="max-h-60 overflow-y-auto border rounded-lg p-2">
+                    <table class="w-full text-left">
+                        <thead>
+                            <tr class="border-b"><th>Datum</th><th>Hühnereier</th><th>Enteneier</th></tr>
+                        </thead>
+                        <tbody>
+                            ${sortedLogs.map(l => `<tr><td>${new Date(l.date).toLocaleDateString('de-DE')}</td><td>${l.chicken}</td><td>${l.duck}</td></tr>`).join('')}
+                        </tbody>
+                    </table>
+                </div>
+            </div>`;
     
-    function renderFileModal(){let c='<h2 class="text-3xl font-bold mb-4">Dateimanagement</h2><p class="mb-6">Lade deine Tier- und Patendaten als Excel-Datei herunter oder lade eine bestehende Datei hoch, um deine Daten zu aktualisieren.</p><div class="grid grid-cols-1 md:grid-cols-2 gap-6"><div class="p-4 border rounded-lg"><h3 class="font-bold text-lg mb-2">Daten Herunterladen</h3><button id="export-data" class="w-full bg-blue-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-blue-600">Daten als Excel exportieren</button></div><div class="p-4 border rounded-lg"><h3 class="font-bold text-lg mb-2">Daten Hochladen</h3><label for="import-file" class="w-full text-center bg-green-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-green-600 cursor-pointer block">Excel-Datei importieren</label><input type="file" id="import-file" class="hidden" accept=".xlsx, .xls"><p class="text-xs text-gray-500 dark:text-gray-400 mt-2">Hinweis: Beim Import werden bestehende Daten überschrieben. Bitte lade zuerst deine aktuellen Daten herunter, um die richtige Formatierung sicherzustellen.</p></div></div><div class="mt-8 p-4 border-2 border-red-400 rounded-lg bg-red-50 dark:bg-red-900/20"><h3 class="font-bold text-lg mb-2 text-red-700 dark:text-red-300">Gefahrenzone</h3><p class="mb-4 text-sm text-red-600 dark:text-red-300">Diese Aktion kann nicht rückgängig gemacht werden. Alle Tier-, Paten- und Eierdaten werden dauerhaft gelöscht.</p><button id="delete-all-data" class="w-full bg-red-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-red-600">Alle App-Daten löschen</button></div>';openModal(c,m=>{m.querySelector('#export-data').addEventListener('click',exportData);m.querySelector('#import-file').addEventListener('change',importData);m.querySelector('#delete-all-data').addEventListener('click',deleteAllData);});}
-
+        openModal(content, modal => {
+            new Chart(modal.querySelector('#egg-pie-chart'), {
+                type: 'pie',
+                data: {
+                    labels: ['Hühnereier', 'Enteneier'],
+                    datasets: [{
+                        data: [totalChickenEggs, totalDuckEggs],
+                        backgroundColor: ['#FFC107', '#87CEEB']
+                    }]
+                }
+            });
+    
+            const last10Logs = sortedLogs.slice(0, 10).reverse();
+            const lineLabels = last10Logs.map(l => new Date(l.date).toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit' }));
+            const lineChickenData = last10Logs.map(l => l.chicken);
+            const lineDuckData = last10Logs.map(l => l.duck);
+            
+            new Chart(modal.querySelector('#egg-line-chart'), {
+                type: 'line',
+                data: {
+                    labels: lineLabels,
+                    datasets: [
+                        { label: 'Hühnereier', data: lineChickenData, borderColor: '#FFC107', tension: 0.1 },
+                        { label: 'Enteneier', data: lineDuckData, borderColor: '#87CEEB', tension: 0.1 }
+                    ]
+                }
+            });
+        });
+    }
+    
+    function renderFileModal() {
+        const content = `
+            <h2 class="text-3xl font-bold mb-4">Dateimanagement</h2>
+            <p class="mb-6">Lade deine Tier- und Patendaten als Excel-Datei herunter oder lade eine bestehende Datei hoch, um deine Daten zu aktualisieren.</p>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="p-4 border rounded-lg">
+                    <h3 class="font-bold text-lg mb-2">Daten Herunterladen</h3>
+                    <button id="export-data" class="w-full bg-blue-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-blue-600">Daten als Excel exportieren</button>
+                </div>
+                <div class="p-4 border rounded-lg">
+                    <h3 class="font-bold text-lg mb-2">Daten Hochladen</h3>
+                    <label for="import-file" class="w-full text-center bg-green-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-green-600 cursor-pointer block">Excel-Datei importieren</label>
+                    <input type="file" id="import-file" class="hidden" accept=".xlsx, .xls">
+                    <p class="text-xs text-gray-500 dark:text-gray-400 mt-2">Hinweis: Beim Import werden bestehende Daten überschrieben. Bitte lade zuerst deine aktuellen Daten herunter, um die richtige Formatierung sicherzustellen.</p>
+                </div>
+            </div>
+            <div class="mt-8 p-4 border-2 border-red-400 rounded-lg bg-red-50 dark:bg-red-900/20">
+                <h3 class="font-bold text-lg mb-2 text-red-700 dark:text-red-300">Gefahrenzone</h3>
+                <p class="mb-4 text-sm text-red-600 dark:text-red-300">Diese Aktion kann nicht rückgängig gemacht werden. Alle Tier-, Paten- und Eierdaten werden dauerhaft gelöscht.</p>
+                <button id="delete-all-data" class="w-full bg-red-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-red-600">Alle App-Daten löschen</button>
+            </div>`;
+        
+        openModal(content, modal => {
+            modal.querySelector('#export-data').addEventListener('click', exportData);
+            modal.querySelector('#import-file').addEventListener('change', importData);
+            modal.querySelector('#delete-all-data').addEventListener('click', deleteAllData);
+        });
+    }
     
     function initModalDraggable(container) {
         let draggingCard = null, longPressTimer = null, isDragging = false;
@@ -609,66 +726,328 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
     
-    async function renderAnimalDetailModal(animalId){
-        const a=state.animals.find(a=>a.id==animalId);if(!a)return;
-        const s=a.sponsorId?state.sponsors.find(s=>s.id===a.sponsorId):null;
-        const fallbackImageUrl = `https://placehold.co/300x200/cccccc/4A2E2E?text=${encodeURIComponent(a.name)}`;
-        let i=a.imageUrl || fallbackImageUrl;if(a.hasCustomImage){try {const b=await getImage(a.id);if(b){i=createManagedObjectURL(b);}} catch(e){console.error(e);}}
-        let content=`<div class="text-center"><img src="${i}" alt="${a.name}" class="detail-image w-48 h-48 object-cover rounded-full mx-auto border-4" style="border-color:${s?sponsorshipColors[s.level]:'#BDC3C7'}"><h2 class="text-3xl font-bold mt-4">${a.name}</h2><div class="my-4">${renderRingIndicator(a)||'<p class="text-sm text-gray-500 mt-1">Kennzeichnung: Blank</p>'}</div><div class="text-left bg-white/50 dark:bg-gray-800/50 p-4 rounded-lg"><h3 class="font-bold text-lg mb-2">Paten-Information</h3>${s?`<p><strong>Name:</strong> ${s.name}</p><p><strong>Modell:</strong> ${s.level}</p>`:'<p>Dieses Tier hat noch keinen Paten.</p>'}</div><div class="mt-6 flex gap-4 justify-center"><button id="back-to-list-btn" class="bg-gray-500 text-white font-bold py-2 px-4 rounded-full">Zurück</button><button id="edit-from-detail-btn" class="bg-blue-500 text-white font-bold py-2 px-4 rounded-full">Bearbeiten</button><button id="delete-from-detail-btn" class="bg-red-500 text-white font-bold py-2 px-4 rounded-full">Löschen</button></div></div>`;
-        openModal(content,m=>{m.querySelector('#back-to-list-btn').addEventListener('click',()=>{history.back();});m.querySelector('#edit-from-detail-btn').addEventListener('click',()=>renderEditAnimalModal(animalId));m.querySelector('#delete-from-detail-btn').addEventListener('click',()=>deleteAnimal(animalId,true));});
-    }
-
-    async function renderSponsorModal(options={}){
-        const{filter='',sortBy='name_asc',levelFilter='alle'}=options;
-        let f=state.sponsors;
-        if(filter){const s=filter.toLowerCase();f=f.filter(sp=>sp.name.toLowerCase().includes(s));}
-        if(levelFilter!=='alle'){f=f.filter(sp=>sp.level===levelFilter);}
-        const o={"King Edition":1,Gold:2,Silber:3};f.sort((a,b)=>{switch(sortBy){case'name_asc':return a.name.localeCompare(b.name);case'level':return o[a.level]-o[b.level];case'animal_count':const cA=state.animals.filter(an=>an.sponsorId===a.id).length;const cB=state.animals.filter(an=>an.sponsorId===b.id).length;return cB-cA;default:return 0;}});
-        const sponsorListPromises = f.map(createSponsorListItemHTML);
-        const sponsorListHtml = (await Promise.all(sponsorListPromises)).join('');
-        let c=`<h2 class="text-3xl font-bold mb-4">Patenübersicht</h2><div class="mb-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2"><input type="text" id="sponsor-search" class="w-full p-2 border rounded-lg sm:col-span-2 lg:col-span-1" placeholder="Suche..." value="${filter}"><select id="sponsor-level-filter" class="w-full p-2 border rounded-lg"><option value="alle" ${levelFilter==='alle'?'selected':''}>Alle Partnerschaften</option><option value="Silber" ${levelFilter==='Silber'?'selected':''}>Silber</option><option value="Gold" ${levelFilter==='Gold'?'selected':''}>Gold</option><option value="King Edition" ${levelFilter==='King Edition'?'selected':''}>King Edition</option></select><select id="sponsor-sort" class="w-full p-2 border rounded-lg"><option value="name_asc" ${sortBy==='name_asc'?'selected':''}>Name (A-Z)</option><option value="level" ${sortBy==='level'?'selected':''}>Patenschafts-Stufe</option><option value="animal_count" ${sortBy==='animal_count'?'selected':''}>Anzahl Patentiere</option></select><button id="add-new-sponsor-btn" class="bg-blue-500 text-white font-bold py-2 px-4 rounded-full hover:bg-blue-600 whitespace-nowrap">Neuer Pate +</button></div><div class="space-y-3">${sponsorListHtml||'<p>Keine Paten gefunden.</p>'}</div>`;
-        openModal(c,m=>{const i=m.querySelector('#sponsor-search'),s=m.querySelector('#sponsor-sort'),l=m.querySelector('#sponsor-level-filter');const r=()=>{renderSponsorModal({filter:i.value,sortBy:s.value,levelFilter:l.value});};i.addEventListener('input',r);s.addEventListener('change',r);l.addEventListener('change',r);m.querySelector('#add-new-sponsor-btn').addEventListener('click',()=>renderEditSponsorModal());m.querySelectorAll('.sponsor-list-card').forEach(c=>c.addEventListener('click',(e)=>renderSponsorDetailModal(parseInt(e.currentTarget.dataset.id))));});
-    }
-
-    async function renderSponsorDetailModal(sponsorId){
-        const s=state.sponsors.find(s=>s.id==sponsorId);if(!s)return;
-        const fallbackImageHtml = `<div class="w-48 h-48 rounded-full mx-auto border-4 flex items-center justify-center" style="border-color:${sponsorshipColors[s.level]};background-color:${sponsorshipColors[s.level]};"><span class="text-white font-bold text-7xl">${s.name.charAt(0)}</span></div>`;
-        let i=fallbackImageHtml;if(s.hasCustomImage){try {const b=await getImage(s.id);if(b){const u=createManagedObjectURL(b);i=`<img src="${u}" alt="${s.name}" class="detail-image w-48 h-48 object-cover rounded-full mx-auto border-4" style="border-color:${sponsorshipColors[s.level]}">`;}} catch(e){console.error(e)}}
-        const a=state.animals.filter(a=>a.sponsorId===s.id);
-        let c=`<div class="text-center">${i}<h2 class="text-3xl font-bold mt-4">${s.name}</h2><p class="text-lg text-gray-600 dark:text-gray-400">Modell: ${s.level}</p><div class="text-left bg-white/50 dark:bg-gray-800/50 p-4 rounded-lg mt-4"><h3 class="font-bold text-lg mb-2">Patentiere</h3>${a.length>0?`<ul>${a.map(an=>`<li>- ${an.name} (${an.species==='chicken'?'Huhn':'Ente'})</li>`).join('')}</ul>`:'<p>Dieser Pate hat noch keine Tiere.</p>'}</div><div class="mt-6 flex gap-4 justify-center"><button id="back-to-sponsor-list-btn" class="bg-gray-500 text-white font-bold py-2 px-4 rounded-full">Zurück</button><button id="edit-sponsor-from-detail-btn" class="bg-blue-500 text-white font-bold py-2 px-4 rounded-full">Bearbeiten</button><button id="delete-sponsor-from-detail-btn" class="bg-red-500 text-white font-bold py-2 px-4 rounded-full">Löschen</button></div></div>`;
-        openModal(c,m=>{m.querySelector('#back-to-sponsor-list-btn').addEventListener('click',()=>{history.back();});m.querySelector('#edit-sponsor-from-detail-btn').addEventListener('click',()=>renderEditSponsorModal(sponsorId));m.querySelector('#delete-sponsor-from-detail-btn').addEventListener('click',()=>deleteSponsor(sponsorId,true));});
-    }
+    async function renderAnimalDetailModal(animalId) {
+        const animal = state.animals.find(a => a.id == animalId);
+        if (!animal) return;
     
-    async function renderEditAnimalModal(animalId = null){
-        activeEditSession = {};
-        const a=animalId?state.animals.find(a=>a.id==animalId):null;const t=a?'Tier bearbeiten':'Neues Tier anlegen';const p=a?'':funnyAnimalNames[Math.floor(Math.random()*funnyAnimalNames.length)];const s=state.sponsors.map(s=>`<option value="${s.id}" ${a&&a.sponsorId==s.id?'selected':''}>${s.name}</option>`).join('');
-        let i='';if(a&&a.hasCustomImage){try{const b=await getImage(a.id);if(b){i=createManagedObjectURL(b);}} catch(e){console.error(e)}}else if(a&&a.imageUrl){i=a.imageUrl;}
-        let c=`<h2 class="text-3xl font-bold mb-4">${t}</h2><form id="animal-edit-form" class="space-y-4"><input type="hidden" name="id" value="${a?a.id:''}"><label class="block font-semibold">Name</label><input type="text" name="name" class="w-full p-2 border rounded-lg" value="${a?a.name:''}" placeholder="${p}" required><label class="block font-semibold">Tierart</label><select name="species" class="w-full p-2 border rounded-lg"><option value="chicken" ${a&&a.species==='chicken'?'selected':''}>Huhn</option><option value="duck" ${a&&a.species==='duck'?'selected':''}>Ente</option></select><label class="block font-semibold">Fußring-Kennzeichnung</label><div class="flex items-center gap-2 mt-1"><select name="ringColor" class="w-1/2 p-2 border rounded-lg"><option value="">Keine Farbe</option><option value="red" ${a&&a.ringColor==='red'?'selected':''}>Rot</option><option value="blue" ${a&&a.ringColor==='blue'?'selected':''}>Blau</option><option value="green" ${a&&a.ringColor==='green'?'selected':''}>Grün</option><option value="yellow" ${a&&a.ringColor==='yellow'?'selected':''}>Gelb</option><option value="black" ${a&&a.ringColor==='black'?'selected':''}>Schwarz</option><option value="white" ${a&&a.ringColor==='white'?'selected':''}>Weiß</option></select><input type="number" name="ringCount" min="0" placeholder="Anzahl" class="w-1/2 p-2 border rounded-lg" value="${a&&a.ringCount?a.ringCount:'0'}"></div><label class="block font-semibold">Pate</label><select name="sponsorId" class="w-full p-2 border rounded-lg"><option value="">Kein Pate</option>${s}</select><label class="block font-semibold">Foto</label><input type="file" name="image" accept="image/*" class="hidden" id="image-input"><div class="flex gap-2 mt-1"><button type="button" id="take-photo" class="flex-1 bg-gray-200 dark:bg-gray-600 dark:hover:bg-gray-500 text-gray-800 dark:text-gray-200 font-bold py-2 px-4 rounded-lg hover:bg-gray-300">📸 Foto aufnehmen</button><button type="button" id="upload-photo" class="flex-1 bg-gray-200 dark:bg-gray-600 dark:hover:bg-gray-500 text-gray-800 dark:text-gray-200 font-bold py-2 px-4 rounded-lg hover:bg-gray-300">📁 Datei hochladen</button></div><div id="image-preview-container" class="mt-2">${i?`<img src="${i}" class="h-20 w-20 object-cover rounded-full">`:''}</div><div class="pt-4"><button type="submit" id="save-btn" class="w-full bg-green-500 text-white font-bold py-3 px-6 rounded-lg text-lg hover:bg-green-600 disabled:bg-gray-400 disabled:cursor-not-allowed" disabled>Speichern</button></div></form>`;
-        openModal(c,m=>{
-            const saveBtn = m.querySelector('#save-btn');
-            m.querySelector('form').addEventListener('input', () => saveBtn.disabled = false);
-            setupImageUploader(m, saveBtn);
-            m.querySelector('#animal-edit-form').addEventListener('submit',handleAnimalFormSubmit);
+        const sponsor = animal.sponsorId ? state.sponsors.find(s => s.id === animal.sponsorId) : null;
+        const fallbackImageUrl = `https://placehold.co/300x200/cccccc/4A2E2E?text=${encodeURIComponent(animal.name)}`;
+        let imageUrl = animal.imageUrl || fallbackImageUrl;
+    
+        if (animal.hasCustomImage) {
+            try {
+                const blob = await getImage(animal.id);
+                if (blob) {
+                    imageUrl = createManagedObjectURL(blob);
+                }
+            } catch (e) {
+                console.error(e);
+            }
+        }
+    
+        const borderColor = sponsor ? sponsorshipColors[sponsor.level] : '#BDC3C7';
+        const ringIndicatorHtml = renderRingIndicator(animal) || '<p class="text-sm text-gray-500 mt-1">Kennzeichnung: Blank</p>';
+        const sponsorInfoHtml = sponsor
+            ? `<p><strong>Name:</strong> ${sponsor.name}</p><p><strong>Modell:</strong> ${sponsor.level}</p>`
+            : '<p>Dieses Tier hat noch keinen Paten.</p>';
+    
+        const content = `
+            <div class="text-center">
+                <img src="${imageUrl}" alt="${animal.name}" class="detail-image w-48 h-48 object-cover rounded-full mx-auto border-4" style="border-color:${borderColor}">
+                <h2 class="text-3xl font-bold mt-4">${animal.name}</h2>
+                <div class="my-4">${ringIndicatorHtml}</div>
+                <div class="text-left bg-white/50 dark:bg-gray-800/50 p-4 rounded-lg">
+                    <h3 class="font-bold text-lg mb-2">Paten-Information</h3>
+                    ${sponsorInfoHtml}
+                </div>
+                <div class="mt-6 flex gap-4 justify-center">
+                    <button id="back-to-list-btn" class="bg-gray-500 text-white font-bold py-2 px-4 rounded-full">Zurück</button>
+                    <button id="edit-from-detail-btn" class="bg-blue-500 text-white font-bold py-2 px-4 rounded-full">Bearbeiten</button>
+                    <button id="delete-from-detail-btn" class="bg-red-500 text-white font-bold py-2 px-4 rounded-full">Löschen</button>
+                </div>
+            </div>`;
+    
+        openModal(content, modal => {
+            modal.querySelector('#back-to-list-btn').addEventListener('click', () => history.back());
+            modal.querySelector('#edit-from-detail-btn').addEventListener('click', () => renderEditAnimalModal(animalId));
+            modal.querySelector('#delete-from-detail-btn').addEventListener('click', () => deleteAnimal(animalId, true));
+        });
+    }
+
+    async function renderSponsorModal(options = {}) {
+        const { filter = '', sortBy = 'name_asc', levelFilter = 'alle' } = options;
+        let filteredSponsors = state.sponsors;
+    
+        if (filter) {
+            const searchTerm = filter.toLowerCase();
+            filteredSponsors = filteredSponsors.filter(sp => sp.name.toLowerCase().includes(searchTerm));
+        }
+    
+        if (levelFilter !== 'alle') {
+            filteredSponsors = filteredSponsors.filter(sp => sp.level === levelFilter);
+        }
+    
+        const levelOrder = { "King Edition": 1, "Gold": 2, "Silber": 3 };
+        filteredSponsors.sort((a, b) => {
+            switch (sortBy) {
+                case 'name_asc':
+                    return a.name.localeCompare(b.name);
+                case 'level':
+                    return levelOrder[a.level] - levelOrder[b.level];
+                case 'animal_count':
+                    const countA = state.animals.filter(an => an.sponsorId === a.id).length;
+                    const countB = state.animals.filter(an => an.sponsorId === b.id).length;
+                    return countB - countA;
+                default:
+                    return 0;
+            }
+        });
+    
+        const sponsorListPromises = filteredSponsors.map(createSponsorListItemHTML);
+        const sponsorListHtml = (await Promise.all(sponsorListPromises)).join('');
+    
+        const content = `
+            <h2 class="text-3xl font-bold mb-4">Patenübersicht</h2>
+            <div class="mb-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2">
+                <input type="text" id="sponsor-search" class="w-full p-2 border rounded-lg sm:col-span-2 lg:col-span-1" placeholder="Suche..." value="${filter}">
+                <select id="sponsor-level-filter" class="w-full p-2 border rounded-lg">
+                    <option value="alle" ${levelFilter === 'alle' ? 'selected' : ''}>Alle Partnerschaften</option>
+                    <option value="Silber" ${levelFilter === 'Silber' ? 'selected' : ''}>Silber</option>
+                    <option value="Gold" ${levelFilter === 'Gold' ? 'selected' : ''}>Gold</option>
+                    <option value="King Edition" ${levelFilter === 'King Edition' ? 'selected' : ''}>King Edition</option>
+                </select>
+                <select id="sponsor-sort" class="w-full p-2 border rounded-lg">
+                    <option value="name_asc" ${sortBy === 'name_asc' ? 'selected' : ''}>Name (A-Z)</option>
+                    <option value="level" ${sortBy === 'level' ? 'selected' : ''}>Patenschafts-Stufe</option>
+                    <option value="animal_count" ${sortBy === 'animal_count' ? 'selected' : ''}>Anzahl Patentiere</option>
+                </select>
+                <button id="add-new-sponsor-btn" class="bg-blue-500 text-white font-bold py-2 px-4 rounded-full hover:bg-blue-600 whitespace-nowrap">Neuer Pate +</button>
+            </div>
+            <div class="space-y-3">${sponsorListHtml || '<p>Keine Paten gefunden.</p>'}</div>`;
+    
+        openModal(content, modal => {
+            const searchInput = modal.querySelector('#sponsor-search');
+            const sortSelect = modal.querySelector('#sponsor-sort');
+            const levelFilterSelect = modal.querySelector('#sponsor-level-filter');
+            
+            const rerender = () => {
+                renderSponsorModal({ filter: searchInput.value, sortBy: sortSelect.value, levelFilter: levelFilterSelect.value });
+            };
+            
+            searchInput.addEventListener('input', rerender);
+            sortSelect.addEventListener('change', rerender);
+            levelFilterSelect.addEventListener('change', rerender);
+            
+            modal.querySelector('#add-new-sponsor-btn').addEventListener('click', () => renderEditSponsorModal());
+            modal.querySelectorAll('.sponsor-list-card').forEach(c => c.addEventListener('click', (e) => renderSponsorDetailModal(parseInt(e.currentTarget.dataset.id))));
+        });
+    }
+
+    async function renderSponsorDetailModal(sponsorId) {
+        const sponsor = state.sponsors.find(s => s.id == sponsorId);
+        if (!sponsor) return;
+    
+        const fallbackImageHtml = `
+            <div class="w-48 h-48 rounded-full mx-auto border-4 flex items-center justify-center" style="border-color:${sponsorshipColors[sponsor.level]};background-color:${sponsorshipColors[sponsor.level]};">
+                <span class="text-white font-bold text-7xl">${sponsor.name.charAt(0)}</span>
+            </div>`;
+        
+        let imageHtml = fallbackImageHtml;
+        if (sponsor.hasCustomImage) {
+            try {
+                const blob = await getImage(sponsor.id);
+                if (blob) {
+                    const url = createManagedObjectURL(blob);
+                    imageHtml = `<img src="${url}" alt="${sponsor.name}" class="detail-image w-48 h-48 object-cover rounded-full mx-auto border-4" style="border-color:${sponsorshipColors[sponsor.level]}">`;
+                }
+            } catch (e) {
+                console.error(e);
+            }
+        }
+    
+        const sponsoredAnimals = state.animals.filter(a => a.sponsorId === sponsor.id);
+        const animalsHtml = sponsoredAnimals.length > 0
+            ? `<ul>${sponsoredAnimals.map(an => `<li>- ${an.name} (${an.species === 'chicken' ? 'Huhn' : 'Ente'})</li>`).join('')}</ul>`
+            : '<p>Dieser Pate hat noch keine Tiere.</p>';
+    
+        const content = `
+            <div class="text-center">
+                ${imageHtml}
+                <h2 class="text-3xl font-bold mt-4">${sponsor.name}</h2>
+                <p class="text-lg text-gray-600 dark:text-gray-400">Modell: ${sponsor.level}</p>
+                <div class="text-left bg-white/50 dark:bg-gray-800/50 p-4 rounded-lg mt-4">
+                    <h3 class="font-bold text-lg mb-2">Patentiere</h3>
+                    ${animalsHtml}
+                </div>
+                <div class="mt-6 flex gap-4 justify-center">
+                    <button id="back-to-sponsor-list-btn" class="bg-gray-500 text-white font-bold py-2 px-4 rounded-full">Zurück</button>
+                    <button id="edit-sponsor-from-detail-btn" class="bg-blue-500 text-white font-bold py-2 px-4 rounded-full">Bearbeiten</button>
+                    <button id="delete-sponsor-from-detail-btn" class="bg-red-500 text-white font-bold py-2 px-4 rounded-full">Löschen</button>
+                </div>
+            </div>`;
+    
+        openModal(content, modal => {
+            modal.querySelector('#back-to-sponsor-list-btn').addEventListener('click', () => history.back());
+            modal.querySelector('#edit-sponsor-from-detail-btn').addEventListener('click', () => renderEditSponsorModal(sponsorId));
+            modal.querySelector('#delete-sponsor-from-detail-btn').addEventListener('click', () => deleteSponsor(sponsorId, true));
         });
     }
     
-    async function renderEditSponsorModal(sponsorId=null){
-        activeEditSession={};
-        const s=sponsorId?state.sponsors.find(s=>s.id==sponsorId):null;const t=s?'Pate bearbeiten':'Neuen Paten anlegen';const p=s?'':funnySponsorNames[Math.floor(Math.random()*funnySponsorNames.length)];
-        const availableAnimals = state.animals.filter(animal => animal.sponsorId === null || (s && animal.sponsorId === s.id));
-        let aC=availableAnimals.map(a=>{const i=s&&a.sponsorId===s.id;return`<label class="flex items-center space-x-2"><input type="checkbox" name="animalIds" value="${a.id}" ${i?'checked':''} class="rounded"><span>${a.name} (${a.species==='chicken'?'Huhn':'Ente'})</span></label>`;}).join('');
-        let i='';if(s&&s.hasCustomImage){try{const b=await getImage(s.id);if(b){i=createManagedObjectURL(b);}}catch(e){console.error(e)}}
-        let c=`<h2 class="text-3xl font-bold mb-4">${t}</h2><form id="sponsor-edit-form" class="space-y-4"><input type="hidden" name="id" value="${s?s.id:''}"><label class="block font-semibold">Name des Paten</label><input type="text" name="name" class="w-full p-2 border rounded-lg" value="${s?s.name:''}" placeholder="${p}" required><label class="block font-semibold">Patenschaftsmodell</label><select name="level" class="w-full p-2 border rounded-lg"><option value="Silber" ${s&&s.level==='Silber'?'selected':''}>Silber</option><option value="Gold" ${s&&s.level==='Gold'?'selected':''}>Gold</option><option value="King Edition" ${s&&s.level==='King Edition'?'selected':''}>King Edition</option></select><label class="block font-semibold">Zugeordnete Tiere</label><div class="max-h-40 overflow-y-auto border rounded-lg p-2 space-y-1 mt-1">${aC||'<p class="text-gray-500">Keine Tiere vorhanden.</p>'}</div><label class="block font-semibold">Foto des Paten (optional)</label><input type="file" name="image" accept="image/*" class="hidden" id="image-input"><div class="flex gap-2 mt-1"><button type="button" id="take-photo" class="flex-1 bg-gray-200 dark:bg-gray-600 dark:hover:bg-gray-500 text-gray-800 dark:text-gray-200 font-bold py-2 px-4 rounded-lg hover:bg-gray-300">📸 Foto aufnehmen</button><button type="button" id="upload-photo" class="flex-1 bg-gray-200 dark:bg-gray-600 dark:hover:bg-gray-500 text-gray-800 dark:text-gray-200 font-bold py-2 px-4 rounded-lg hover:bg-gray-300">📁 Datei hochladen</button></div><div id="image-preview-container" class="mt-2">${i?`<img src="${i}" class="h-20 w-20 object-cover rounded-full">`:''}</div><div class="pt-4"><button type="submit" id="save-btn" class="w-full bg-green-500 text-white font-bold py-3 px-6 rounded-lg text-lg hover:bg-green-600 disabled:bg-gray-400 disabled:cursor-not-allowed" disabled>Speichern</button></div></form>`;
-        openModal(c,m=>{
-            const saveBtn = m.querySelector('#save-btn');
-            m.querySelector('form').addEventListener('input', () => saveBtn.disabled = false);
-            setupImageUploader(m, saveBtn);
-            m.querySelector('#sponsor-edit-form').addEventListener('submit',handleSponsorFormSubmit);
+    async function renderEditAnimalModal(animalId = null) {
+        activeEditSession = {};
+        const animal = animalId ? state.animals.find(a => a.id == animalId) : null;
+        const title = animal ? 'Tier bearbeiten' : 'Neues Tier anlegen';
+        const placeholderName = animal ? '' : funnyAnimalNames[Math.floor(Math.random() * funnyAnimalNames.length)];
+        const sponsorsOptions = state.sponsors.map(s => `<option value="${s.id}" ${animal && animal.sponsorId == s.id ? 'selected' : ''}>${s.name}</option>`).join('');
+    
+        let imageUrl = '';
+        if (animal && animal.hasCustomImage) {
+            try {
+                const blob = await getImage(animal.id);
+                if (blob) {
+                    imageUrl = createManagedObjectURL(blob);
+                }
+            } catch (e) {
+                console.error(e);
+            }
+        } else if (animal && animal.imageUrl) {
+            imageUrl = animal.imageUrl;
+        }
+    
+        const content = `
+            <h2 class="text-3xl font-bold mb-4">${title}</h2>
+            <form id="animal-edit-form" class="space-y-4">
+                <input type="hidden" name="id" value="${animal ? animal.id : ''}">
+                <label class="block font-semibold">Name</label>
+                <input type="text" name="name" class="w-full p-2 border rounded-lg" value="${animal ? animal.name : ''}" placeholder="${placeholderName}" required>
+                <label class="block font-semibold">Tierart</label>
+                <select name="species" class="w-full p-2 border rounded-lg">
+                    <option value="chicken" ${animal && animal.species === 'chicken' ? 'selected' : ''}>Huhn</option>
+                    <option value="duck" ${animal && animal.species === 'duck' ? 'selected' : ''}>Ente</option>
+                </select>
+                <label class="block font-semibold">Fußring-Kennzeichnung</label>
+                <div class="flex items-center gap-2 mt-1">
+                    <select name="ringColor" class="w-1/2 p-2 border rounded-lg">
+                        <option value="">Keine Farbe</option>
+                        <option value="red" ${animal && animal.ringColor === 'red' ? 'selected' : ''}>Rot</option>
+                        <option value="blue" ${animal && animal.ringColor === 'blue' ? 'selected' : ''}>Blau</option>
+                        <option value="green" ${animal && animal.ringColor === 'green' ? 'selected' : ''}>Grün</option>
+                        <option value="yellow" ${animal && animal.ringColor === 'yellow' ? 'selected' : ''}>Gelb</option>
+                        <option value="black" ${animal && animal.ringColor === 'black' ? 'selected' : ''}>Schwarz</option>
+                        <option value="white" ${animal && animal.ringColor === 'white' ? 'selected' : ''}>Weiß</option>
+                    </select>
+                    <input type="number" name="ringCount" min="0" placeholder="Anzahl" class="w-1/2 p-2 border rounded-lg" value="${animal && animal.ringCount ? animal.ringCount : '0'}">
+                </div>
+                <label class="block font-semibold">Pate</label>
+                <select name="sponsorId" class="w-full p-2 border rounded-lg">
+                    <option value="">Kein Pate</option>
+                    ${sponsorsOptions}
+                </select>
+                <label class="block font-semibold">Foto</label>
+                <input type="file" name="image" accept="image/*" class="hidden" id="image-input">
+                <div class="flex gap-2 mt-1">
+                    <button type="button" id="take-photo" class="flex-1 bg-gray-200 dark:bg-gray-600 dark:hover:bg-gray-500 text-gray-800 dark:text-gray-200 font-bold py-2 px-4 rounded-lg hover:bg-gray-300">📸 Foto aufnehmen</button>
+                    <button type="button" id="upload-photo" class="flex-1 bg-gray-200 dark:bg-gray-600 dark:hover:bg-gray-500 text-gray-800 dark:text-gray-200 font-bold py-2 px-4 rounded-lg hover:bg-gray-300">📁 Datei hochladen</button>
+                </div>
+                <div id="image-preview-container" class="mt-2">${imageUrl ? `<img src="${imageUrl}" class="h-20 w-20 object-cover rounded-full">` : ''}</div>
+                <div class="pt-4">
+                    <button type="submit" id="save-btn" class="w-full bg-green-500 text-white font-bold py-3 px-6 rounded-lg text-lg hover:bg-green-600 disabled:bg-gray-400 disabled:cursor-not-allowed" ${animal ? '' : 'disabled'}>Speichern</button>
+                </div>
+            </form>`;
+    
+        openModal(content, modal => {
+            const saveBtn = modal.querySelector('#save-btn');
+            modal.querySelector('form').addEventListener('input', () => saveBtn.disabled = false);
+            setupImageUploader(modal, saveBtn);
+            modal.querySelector('#animal-edit-form').addEventListener('submit', handleAnimalFormSubmit);
+        });
+    }
+    
+    async function renderEditSponsorModal(sponsorId = null) {
+        activeEditSession = {};
+        const sponsor = sponsorId ? state.sponsors.find(s => s.id == sponsorId) : null;
+        const title = sponsor ? 'Pate bearbeiten' : 'Neuen Paten anlegen';
+        const placeholderName = sponsor ? '' : funnySponsorNames[Math.floor(Math.random() * funnySponsorNames.length)];
+        
+        const availableAnimals = state.animals.filter(animal => animal.sponsorId === null || (sponsor && animal.sponsorId === sponsor.id));
+        const animalCheckboxes = availableAnimals.map(animal => {
+            const isChecked = sponsor && animal.sponsorId === sponsor.id;
+            return `<label class="flex items-center space-x-2"><input type="checkbox" name="animalIds" value="${animal.id}" ${isChecked ? 'checked' : ''} class="rounded"><span>${animal.name} (${animal.species === 'chicken' ? 'Huhn' : 'Ente'})</span></label>`;
+        }).join('');
+    
+        let imageUrl = '';
+        if (sponsor && sponsor.hasCustomImage) {
+            try {
+                const blob = await getImage(sponsor.id);
+                if (blob) {
+                    imageUrl = createManagedObjectURL(blob);
+                }
+            } catch (e) {
+                console.error(e);
+            }
+        }
+    
+        const content = `
+            <h2 class="text-3xl font-bold mb-4">${title}</h2>
+            <form id="sponsor-edit-form" class="space-y-4">
+                <input type="hidden" name="id" value="${sponsor ? sponsor.id : ''}">
+                <label class="block font-semibold">Name des Paten</label>
+                <input type="text" name="name" class="w-full p-2 border rounded-lg" value="${sponsor ? sponsor.name : ''}" placeholder="${placeholderName}" required>
+                <label class="block font-semibold">Patenschaftsmodell</label>
+                <select name="level" class="w-full p-2 border rounded-lg">
+                    <option value="Silber" ${sponsor && sponsor.level === 'Silber' ? 'selected' : ''}>Silber</option>
+                    <option value="Gold" ${sponsor && sponsor.level === 'Gold' ? 'selected' : ''}>Gold</option>
+                    <option value="King Edition" ${sponsor && sponsor.level === 'King Edition' ? 'selected' : ''}>King Edition</option>
+                </select>
+                <label class="block font-semibold">Zugeordnete Tiere</label>
+                <div class="max-h-40 overflow-y-auto border rounded-lg p-2 space-y-1 mt-1">
+                    ${animalCheckboxes || '<p class="text-gray-500">Keine Tiere vorhanden.</p>'}
+                </div>
+                <label class="block font-semibold">Foto des Paten (optional)</label>
+                <input type="file" name="image" accept="image/*" class="hidden" id="image-input">
+                <div class="flex gap-2 mt-1">
+                    <button type="button" id="take-photo" class="flex-1 bg-gray-200 dark:bg-gray-600 dark:hover:bg-gray-500 text-gray-800 dark:text-gray-200 font-bold py-2 px-4 rounded-lg hover:bg-gray-300">📸 Foto aufnehmen</button>
+                    <button type="button" id="upload-photo" class="flex-1 bg-gray-200 dark:bg-gray-600 dark:hover:bg-gray-500 text-gray-800 dark:text-gray-200 font-bold py-2 px-4 rounded-lg hover:bg-gray-300">📁 Datei hochladen</button>
+                </div>
+                <div id="image-preview-container" class="mt-2">${imageUrl ? `<img src="${imageUrl}" class="h-20 w-20 object-cover rounded-full">` : ''}</div>
+                <div class="pt-4">
+                    <button type="submit" id="save-btn" class="w-full bg-green-500 text-white font-bold py-3 px-6 rounded-lg text-lg hover:bg-green-600 disabled:bg-gray-400 disabled:cursor-not-allowed" ${sponsor ? '' : 'disabled'}>Speichern</button>
+                </div>
+            </form>`;
+    
+        openModal(content, modal => {
+            const saveBtn = modal.querySelector('#save-btn');
+            modal.querySelector('form').addEventListener('input', () => saveBtn.disabled = false);
+            setupImageUploader(modal, saveBtn);
+            modal.querySelector('#sponsor-edit-form').addEventListener('submit', handleSponsorFormSubmit);
         });
     }
     
     // --- DATA HANDLING ---
-    function handleEggFormSubmit(e){e.preventDefault();const c=parseInt(document.getElementById('chicken-eggs').value)||0;const d=parseInt(document.getElementById('duck-eggs').value)||0;const t=getFormattedDate(new Date());const i=state.eggLogs.findIndex(l=>l.date===t);if(i>-1){state.eggLogs[i].chicken=c;state.eggLogs[i].duck=d;}else{state.eggLogs.push({date:t,chicken:c,duck:d});}saveState();renderDashboard();e.target.reset();}
+    function cleanupAndCloseModal() {
+        activeEditSession = {}; // Clear session data, including temporary newImageBlob reference
+        history.back(); // Triggers popstate listener to close modal and revoke object URLs
+    }
+
+    function handleEggFormSubmit(e) {
+        e.preventDefault();
+        const chickenCount = parseInt(document.getElementById('chicken-eggs').value) || 0;
+        const duckCount = parseInt(document.getElementById('duck-eggs').value) || 0;
+        const today = getFormattedDate(new Date());
+        
+        const logIndex = state.eggLogs.findIndex(l => l.date === today);
+        
+        if (logIndex > -1) {
+            state.eggLogs[logIndex].chicken = chickenCount;
+            state.eggLogs[logIndex].duck = duckCount;
+        } else {
+            state.eggLogs.push({ date: today, chicken: chickenCount, duck: duckCount });
+        }
+        
+        saveState();
+        renderDashboard();
+        e.target.reset();
+    }
     
     async function handleAnimalFormSubmit(e) {
         e.preventDefault();
@@ -713,8 +1092,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         
         await saveState();
-        activeEditSession = {};
-        history.back();
+        cleanupAndCloseModal();
         renderDashboard();
         if (document.querySelector('#animal-search')) renderAnimalModal();
     }
@@ -758,8 +1136,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         
         await saveState();
-        activeEditSession = {};
-        history.back();
+        cleanupAndCloseModal();
         renderDashboard();
         if (document.querySelector('#sponsor-search')) renderSponsorModal();
     }
@@ -767,23 +1144,39 @@ document.addEventListener('DOMContentLoaded', () => {
     async function deleteAnimal(animalId, fromDetail = false) {
         if (await showConfirmation('Bist du sicher, dass du dieses Tier löschen möchtest?')) {
             const animal = state.animals.find(a => a.id == animalId);
-            if (animal && animal.hasCustomImage) await deleteImage(animalId);
+            if (animal && animal.hasCustomImage) {
+                await deleteImage(animalId);
+            }
             state.animals = state.animals.filter(a => a.id != animalId);
             await saveState();
             renderDashboard();
-            if(fromDetail) { history.back(); } else { renderAnimalModal(); }
+            if (fromDetail) {
+                history.back();
+            } else {
+                renderAnimalModal();
+            }
         }
     }
     
     async function deleteSponsor(sponsorId, fromDetail = false) {
         if (await showConfirmation('Bist du sicher? Zugeordnete Tiere verlieren ihre Patenschaft.')) {
             const sponsor = state.sponsors.find(s => s.id == sponsorId);
-            if (sponsor && sponsor.hasCustomImage) await deleteImage(sponsorId);
+            if (sponsor && sponsor.hasCustomImage) {
+                await deleteImage(sponsorId);
+            }
             state.sponsors = state.sponsors.filter(s => s.id != sponsorId);
-            state.animals.forEach(animal => { if (animal.sponsorId == sponsorId) animal.sponsorId = null; });
+            state.animals.forEach(animal => {
+                if (animal.sponsorId == sponsorId) {
+                    animal.sponsorId = null;
+                }
+            });
             await saveState();
             renderDashboard();
-            if(fromDetail) { history.back(); } else { renderSponsorModal(); }
+            if (fromDetail) {
+                history.back();
+            } else {
+                renderSponsorModal();
+            }
         }
     }
     
@@ -805,16 +1198,96 @@ document.addEventListener('DOMContentLoaded', () => {
                 showAlert("Daten gelöscht, aber es gab ein Problem beim Bereinigen der Bilder.");
             }
 
-            await saveState();
+            await saveState(false);
             renderDashboard();
             history.back();
             showToast("Alle Daten wurden gelöscht.");
         }
     }
     
-    async function exportData(){const a=await Promise.all(state.animals.map(async a=>{const c={...a};if(c.hasCustomImage){const b=await getImage(c.id);if(b){c.imageUrl=await blobToBase64(b);}}return c;}));const s=await Promise.all(state.sponsors.map(async s=>{const c={...s};if(c.hasCustomImage){const b=await getImage(c.id);if(b){c.imageUrl=await blobToBase64(b);}}return c;}));const aS=XLSX.utils.json_to_sheet(a);const sS=XLSX.utils.json_to_sheet(s);const eS=XLSX.utils.json_to_sheet(state.eggLogs);const w=XLSX.utils.book_new();XLSX.utils.book_append_sheet(w,aS,"Tiere");XLSX.utils.book_append_sheet(w,sS,"Paten");XLSX.utils.book_append_sheet(w,eS,"Eier");XLSX.writeFile(w,"Chicken-App-Daten.xlsx");showToast("Daten werden exportiert!");}
+    async function exportData() {
+        const animalsWithImages = await Promise.all(state.animals.map(async animal => {
+            const copy = { ...animal };
+            if (copy.hasCustomImage) {
+                const blob = await getImage(copy.id);
+                if (blob) {
+                    copy.imageUrl = await blobToBase64(blob);
+                }
+            }
+            return copy;
+        }));
     
-    function importData(event){const f=event.target.files[0];if(!f)return;const r=new FileReader();r.onload=async e=>{const d=new Uint8Array(e.target.result);const w=XLSX.read(d,{type:'array'});try{const iA=XLSX.utils.sheet_to_json(w.Sheets['Tiere']);const iS=XLSX.utils.sheet_to_json(w.Sheets['Paten']);await Promise.all(iA.map(async a=>{if(a.imageUrl&&a.imageUrl.startsWith('data:image')){const b=await base64ToBlob(a.imageUrl);await saveImage(a.id,b);a.hasCustomImage=true;delete a.imageUrl;}}));await Promise.all(iS.map(async s=>{if(s.imageUrl&&s.imageUrl.startsWith('data:image')){const b=await base64ToBlob(s.imageUrl);await saveImage(s.id,b);s.hasCustomImage=true;delete s.imageUrl;}}));state.animals=iA;state.sponsors=iS;state.eggLogs=XLSX.utils.sheet_to_json(w.Sheets['Eier']);await saveState();renderDashboard();history.back();showToast("Daten erfolgreich importiert!");}catch(err){console.error("Import Error:",err);showAlert("Fehler beim Importieren der Datei.");}};r.readAsArrayBuffer(f);}
+        const sponsorsWithImages = await Promise.all(state.sponsors.map(async sponsor => {
+            const copy = { ...sponsor };
+            if (copy.hasCustomImage) {
+                const blob = await getImage(copy.id);
+                if (blob) {
+                    copy.imageUrl = await blobToBase64(blob);
+                }
+            }
+            return copy;
+        }));
+    
+        const animalSheet = XLSX.utils.json_to_sheet(animalsWithImages);
+        const sponsorSheet = XLSX.utils.json_to_sheet(sponsorsWithImages);
+        const eggSheet = XLSX.utils.json_to_sheet(state.eggLogs);
+    
+        const workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, animalSheet, "Tiere");
+        XLSX.utils.book_append_sheet(workbook, sponsorSheet, "Paten");
+        XLSX.utils.book_append_sheet(workbook, eggSheet, "Eier");
+    
+        XLSX.writeFile(workbook, "Chicken-App-Daten.xlsx");
+        showToast("Daten werden exportiert!");
+    }
+    
+    function importData(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+    
+        const reader = new FileReader();
+        reader.onload = async e => {
+            const data = new Uint8Array(e.target.result);
+            const workbook = XLSX.read(data, { type: 'array' });
+    
+            try {
+                const importedAnimals = XLSX.utils.sheet_to_json(workbook.Sheets['Tiere']);
+                const importedSponsors = XLSX.utils.sheet_to_json(workbook.Sheets['Paten']);
+    
+                await Promise.all(importedAnimals.map(async (animal) => {
+                    if (animal.imageUrl && animal.imageUrl.startsWith('data:image')) {
+                        const blob = await base64ToBlob(animal.imageUrl);
+                        await saveImage(animal.id, blob);
+                        animal.hasCustomImage = true;
+                        delete animal.imageUrl;
+                    }
+                }));
+    
+                await Promise.all(importedSponsors.map(async (sponsor) => {
+                    if (sponsor.imageUrl && sponsor.imageUrl.startsWith('data:image')) {
+                        const blob = await base64ToBlob(sponsor.imageUrl);
+                        await saveImage(sponsor.id, blob);
+                        sponsor.hasCustomImage = true;
+                        delete sponsor.imageUrl;
+                    }
+                }));
+    
+                state.animals = importedAnimals;
+                state.sponsors = importedSponsors;
+                state.eggLogs = XLSX.utils.sheet_to_json(workbook.Sheets['Eier']);
+    
+                await saveState(false);
+                renderDashboard();
+                history.back();
+                showToast("Daten erfolgreich importiert!");
+    
+            } catch (err) {
+                console.error("Import Error:", err);
+                showAlert("Fehler beim Importieren der Datei. Stellen Sie sicher, dass die Blätter 'Tiere', 'Paten' und 'Eier' existieren und korrekt formatiert sind.");
+            }
+        };
+        reader.readAsArrayBuffer(file);
+    }
     
     // --- THEME & INIT ---
     function applyTheme(theme){if(theme==='dark'){document.documentElement.classList.add('dark');}else{document.documentElement.classList.remove('dark');}}
@@ -865,6 +1338,7 @@ document.addEventListener('DOMContentLoaded', () => {
             await loadDashboardOrder();
             renderDashboard();
             applyTheme(theme || 'light');
+            startAutoSaveTimer();
             
         } catch (error) {
             console.error("Critical Error on Initialization:", error);
@@ -929,7 +1403,7 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         }
         
-        await saveState();
+        await saveState(false);
         console.log("Sample data added and saved.");
     }
 
