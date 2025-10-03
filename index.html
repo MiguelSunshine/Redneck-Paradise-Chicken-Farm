@@ -217,13 +217,13 @@
                     <button type="submit" class="w-full sm:col-span-2 bg-[var(--color-accent)] text-white font-bold py-2 px-4 rounded-full hover:bg-[var(--color-accent-hover)] transition-all duration-300 shadow-lg transform hover:-translate-y-px mt-2">Speichern</button>
                 </form>
             </div>
-            <div id="card-animals" class="card p-4 sm:p-6 text-center">
+            <div id="card-animals" class="card p-4 sm:p-6 flex flex-col items-center justify-center text-center">
                 <div class="text-4xl sm:text-5xl lg:text-6xl mb-2">🐔</div>
                 <h3 class="text-xl sm:text-2xl font-bold">Tierübersicht</h3>
                 <p class="text-sm sm:text-base">Hühner: <span id="chicken-count">0</span></p>
                 <p class="text-sm sm:text-base">Enten: <span id="duck-count">0</span></p>
             </div>
-            <div id="card-sponsors" class="card p-4 sm:p-6 text-center">
+            <div id="card-sponsors" class="card p-4 sm:p-6 flex flex-col items-center justify-center text-center">
                 <div class="text-4xl sm:text-5xl lg:text-6xl mb-2">❤️</div>
                 <h3 class="text-xl sm:text-2xl font-bold">Patenübersicht</h3>
                 <p class="text-sm sm:text-base">Paten gesamt: <span id="sponsor-count">0</span></p>
@@ -239,7 +239,7 @@
                     </div>
                 </div>
             </div>
-            <div id="card-eggs" class="card p-4 sm:p-6 text-center">
+            <div id="card-eggs" class="card p-4 sm:p-6 flex flex-col items-center justify-center text-center">
                 <div class="text-4xl sm:text-5xl lg:text-6xl mb-2">📜</div>
                 <h3 class="text-xl sm:text-2xl font-bold">Eier Logbuch</h3>
                 <p class="text-sm sm:text-base">Hühnereier (heute): <span id="egg-chicken-today">0</span></p>
@@ -917,12 +917,12 @@ document.addEventListener('DOMContentLoaded', () => {
             <h2 class="text-3xl font-bold mb-4">Daten sichern & wiederherstellen</h2>
             <p class="mb-6">Erstelle eine vollständige Sicherung aller deiner Daten (Tiere, Paten, Eier & Bilder) in einer einzigen ZIP-Datei. Diese Datei kannst du verwenden, um deine Daten auf einem anderen Gerät wiederherzustellen.</p>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div class="p-4 border rounded-lg text-center flex flex-col">
+                <div class="p-4 border rounded-lg text-center flex flex-col h-full">
                     <h3 class="font-bold text-lg mb-2">Daten sichern</h3>
                     <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">Speichere alle deine App-Daten in einer .zip-Datei.</p>
                     <button id="export-zip" class="w-full bg-blue-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-blue-600 mt-auto">Komplett-Backup erstellen (.zip)</button>
                 </div>
-                <div class="p-4 border rounded-lg text-center flex flex-col">
+                <div class="p-4 border rounded-lg text-center flex flex-col h-full">
                     <h3 class="font-bold text-lg mb-2">Daten wiederherstellen</h3>
                      <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">Lade eine .zip-Sicherungsdatei hoch, um deine Daten zu importieren.</p>
                     <label for="import-zip-file" class="w-full text-center bg-green-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-green-600 cursor-pointer block mt-auto">Backup importieren (.zip)</label>
