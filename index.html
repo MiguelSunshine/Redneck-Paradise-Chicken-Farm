@@ -1767,7 +1767,8 @@ document.addEventListener('DOMContentLoaded', () => {
             const blob = new Blob([wbout], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
             const file = new File([blob], fileName, { type: blob.type });
 
-            if (navigator.share) {
+            // Use Web Share API if available and supports files
+            if (navigator.canShare && navigator.canShare({ files: [file] })) {
                 try {
                     await navigator.share({
                         files: [file],
@@ -1775,15 +1776,17 @@ document.addEventListener('DOMContentLoaded', () => {
                         text: `Datenexport vom ${new Date().toLocaleDateString('de-DE')}`,
                     });
                     showToast("Daten erfolgreich geteilt!");
-                    return;
+                    return; // Success!
                 } catch (error) {
-                    console.log("Web Share API failed, falling back to download.", error);
                     if (error.name === 'AbortError') {
-                        return;
+                        return; // User cancelled, do nothing.
                     }
+                    console.log("Web Share API failed, falling back to download.", error);
+                    // Fall through to the download link method.
                 }
             }
     
+            // Fallback for browsers that don't support sharing files
             const link = document.createElement('a');
             if (link.download !== undefined) {
                 const url = URL.createObjectURL(blob);
@@ -1793,7 +1796,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 document.body.appendChild(link);
                 link.click();
                 document.body.removeChild(link);
-                URL.revokeObjectURL(url);
+                // Revoke the URL after a delay to ensure the download starts
+                setTimeout(() => URL.revokeObjectURL(url), 100);
                 showToast("Download gestartet!");
             } else {
                 showAlert("Dein Browser unterstützt weder das Teilen von Dateien noch den direkten Download. Versuche es auf einem Desktop-Gerät.");
