@@ -1720,39 +1720,74 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     
     async function exportData() {
-        const animalsWithImages = await Promise.all(state.animals.map(async animal => {
-            const copy = { ...animal };
-            if (copy.hasCustomImage) {
-                const blob = await getImage(copy.id);
-                if (blob) {
-                    copy.imageUrl = await blobToBase64(blob);
+        try {
+            showToast("Daten werden vorbereitet...");
+    
+            const animalsWithImages = await Promise.all(state.animals.map(async animal => {
+                const copy = { ...animal };
+                if (copy.hasCustomImage) {
+                    try {
+                        const blob = await getImage(copy.id);
+                        if (blob) { copy.imageUrl = await blobToBase64(blob); }
+                    } catch (e) { console.error(`Error getting image for animal ${copy.id}`, e); }
+                }
+                return copy;
+            }));
+        
+            const sponsorsWithImages = await Promise.all(state.sponsors.map(async sponsor => {
+                const copy = { ...sponsor };
+                if (copy.hasCustomImage) {
+                    try {
+                        const blob = await getImage(copy.id);
+                        if (blob) { copy.imageUrl = await blobToBase64(blob); }
+                    } catch (e) { console.error(`Error getting image for sponsor ${copy.id}`, e); }
+                }
+                return copy;
+            }));
+        
+            const animalSheet = XLSX.utils.json_to_sheet(animalsWithImages);
+            const sponsorSheet = XLSX.utils.json_to_sheet(sponsorsWithImages);
+            const eggSheet = XLSX.utils.json_to_sheet(state.eggLogs);
+        
+            const workbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(workbook, animalSheet, "Tiere");
+            XLSX.utils.book_append_sheet(workbook, sponsorSheet, "Paten");
+            XLSX.utils.book_append_sheet(workbook, eggSheet, "Eier");
+        
+            const fileName = "Chicken-App-Daten.xlsx";
+            const wbout = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' });
+            const blob = new Blob([wbout], { type: 'application/octet-stream' });
+            const file = new File([blob], fileName, { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+            
+            if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+                await navigator.share({
+                    files: [file],
+                    title: 'Chicken-App Daten',
+                    text: `Datenexport vom ${new Date().toLocaleDateString('de-DE')}`
+                });
+                showToast("Daten erfolgreich geteilt!");
+            } else {
+                const link = document.createElement('a');
+                if (link.download !== undefined) {
+                    const url = URL.createObjectURL(blob);
+                    link.setAttribute('href', url);
+                    link.setAttribute('download', fileName);
+                    link.style.visibility = 'hidden';
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                    URL.revokeObjectURL(url);
+                    showToast("Download gestartet!");
+                } else {
+                    showAlert("Dein Browser unterstützt den direkten Download nicht. Versuche es auf einem Desktop-Gerät.");
                 }
             }
-            return copy;
-        }));
-    
-        const sponsorsWithImages = await Promise.all(state.sponsors.map(async sponsor => {
-            const copy = { ...sponsor };
-            if (copy.hasCustomImage) {
-                const blob = await getImage(copy.id);
-                if (blob) {
-                    copy.imageUrl = await blobToBase64(blob);
-                }
+        } catch (error) {
+            console.error("Export Error:", error);
+            if (error.name !== 'AbortError') {
+                showAlert("Ein Fehler ist beim Exportieren der Daten aufgetreten.");
             }
-            return copy;
-        }));
-    
-        const animalSheet = XLSX.utils.json_to_sheet(animalsWithImages);
-        const sponsorSheet = XLSX.utils.json_to_sheet(sponsorsWithImages);
-        const eggSheet = XLSX.utils.json_to_sheet(state.eggLogs);
-    
-        const workbook = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(workbook, animalSheet, "Tiere");
-        XLSX.utils.book_append_sheet(workbook, sponsorSheet, "Paten");
-        XLSX.utils.book_append_sheet(workbook, eggSheet, "Eier");
-    
-        XLSX.writeFile(workbook, "Chicken-App-Daten.xlsx");
-        showToast("Daten werden exportiert!");
+        }
     }
     
     function importData(event) {
