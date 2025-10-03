@@ -70,12 +70,7 @@
             font-family: 'Quicksand', sans-serif;
             background: var(--bg-main);
             color: var(--text-color);
-            -webkit-touch-callout: none; /* iOS Safari */
-            -webkit-user-select: none;   /* Safari */
-            -khtml-user-select: none;    /* Konqueror HTML */
-            -moz-user-select: none;      /* Old versions of Firefox */
-            -ms-user-select: none;       /* Internet Explorer/Edge */
-            user-select: none;           /* Non-prefixed version, currently supported by Chrome, Opera and Firefox */
+            /* ENTFALLEN: Aggressive user-select: none */
         }
         h1, h2, h3, h4, button, label, p {
            font-family: 'Quicksand', sans-serif;
@@ -86,6 +81,7 @@
             color: inherit;
             background-color: var(--bg-card);
             border-color: var(--input-border);
+            /* Textauswahl in Eingabefeldern erlauben */
             -webkit-user-select: text;
             -moz-user-select: text;
             -ms-user-select: text;
@@ -124,6 +120,10 @@
             border: 4px dashed transparent;
             position: relative;
             overflow: hidden;
+            /* NEU: user-select nur auf Karten für Drag/Drop */
+            -webkit-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
         }
         #dashboard-grid .card {
              cursor: pointer;
@@ -483,8 +483,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         const modalWrapper = allModals[allModals.length - 1];
     
-        // BUGFIX: Only clear URLs if we are closing the last modal.
-        // This prevents breaking images in underlying modals (e.g., after cropping).
+        // FIX: Nur Object URLs freigeben, wenn der letzte Modal geschlossen wird.
         if (allModals.length <= 1) {
             activeModalObjectUrls.forEach(url => URL.revokeObjectURL(url));
             activeModalObjectUrls.clear();
