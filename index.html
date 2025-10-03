@@ -1071,7 +1071,7 @@ document.addEventListener('DOMContentLoaded', () => {
     
         openModal(content, async modal => {
             modal.querySelector('#back-to-list-btn').addEventListener('click', () => history.back());
-            modal.querySelector('#edit-from-detail-btn').addEventListener('click', () => renderEditAnimalModal(animalId));
+            modal.querySelector('#edit-from-detail-btn').addEventListener('click', () => renderEditAnimalModal(animalId, { fromDetail: true }));
             modal.querySelector('#delete-from-detail-btn').addEventListener('click', () => deleteAnimal(animalId, true));
 
             const fallbackImageUrl = `https://placehold.co/300x200/cccccc/4A2E2E?text=${encodeURIComponent(animal.name)}`;
@@ -1148,7 +1148,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 };
                 reader.readAsDataURL(file);
             });
-        });
+        }, { stack: true });
     }
 
     async function renderSponsorModal(options = {}) {
@@ -1252,7 +1252,7 @@ document.addEventListener('DOMContentLoaded', () => {
     
         openModal(content, async modal => {
             modal.querySelector('#back-to-sponsor-list-btn').addEventListener('click', () => history.back());
-            modal.querySelector('#edit-sponsor-from-detail-btn').addEventListener('click', () => renderEditSponsorModal(sponsorId));
+            modal.querySelector('#edit-sponsor-from-detail-btn').addEventListener('click', () => renderEditSponsorModal(sponsorId, { fromDetail: true }));
             modal.querySelector('#delete-sponsor-from-detail-btn').addEventListener('click', () => deleteSponsor(sponsorId, true));
 
             let imageContentHtml;
@@ -1333,10 +1333,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 };
                 reader.readAsDataURL(file);
             });
-        });
+        }, { stack: true });
     }
     
-    async function renderEditAnimalModal(animalId = null) {
+    async function renderEditAnimalModal(animalId = null, options = {}) {
+        const { fromDetail = false } = options;
         activeEditSession = {};
         const animal = animalId ? state.animals.find(a => a.id == animalId) : null;
         const title = animal ? 'Tier bearbeiten' : 'Neues Tier anlegen';
@@ -1345,7 +1346,7 @@ document.addEventListener('DOMContentLoaded', () => {
     
         const content = `
             <h2 class="text-3xl font-bold mb-4">${title}</h2>
-            <form id="animal-edit-form" class="space-y-4">
+            <form id="animal-edit-form" class="space-y-4" data-from-detail="${fromDetail}">
                 <input type="hidden" name="id" value="${animal ? animal.id : ''}">
                 <label class="block font-semibold">Name</label>
                 <input type="text" name="name" class="w-full p-2 border rounded-lg" value="${animal ? animal.name : ''}" placeholder="${placeholderName}" required>
@@ -1408,10 +1409,11 @@ document.addEventListener('DOMContentLoaded', () => {
             if (imageUrl) {
                 imagePreviewContainer.innerHTML = `<img src="${imageUrl}" class="h-20 w-20 object-cover rounded-full">`;
             }
-        });
+        }, { stack: fromDetail });
     }
     
-    async function renderEditSponsorModal(sponsorId = null) {
+    async function renderEditSponsorModal(sponsorId = null, options = {}) {
+        const { fromDetail = false } = options;
         activeEditSession = {};
         const sponsor = sponsorId ? state.sponsors.find(s => s.id == sponsorId) : null;
         const title = sponsor ? 'Pate bearbeiten' : 'Neuen Paten anlegen';
@@ -1425,7 +1427,7 @@ document.addEventListener('DOMContentLoaded', () => {
     
         const content = `
             <h2 class="text-3xl font-bold mb-4">${title}</h2>
-            <form id="sponsor-edit-form" class="space-y-4">
+            <form id="sponsor-edit-form" class="space-y-4" data-from-detail="${fromDetail}">
                 <input type="hidden" name="id" value="${sponsor ? sponsor.id : ''}">
                 <label class="block font-semibold">Name des Paten</label>
                 <input type="text" name="name" class="w-full p-2 border rounded-lg" value="${sponsor ? sponsor.name : ''}" placeholder="${placeholderName}" required>
@@ -1472,7 +1474,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (imageUrl) {
                 imagePreviewContainer.innerHTML = `<img src="${imageUrl}" class="h-20 w-20 object-cover rounded-full">`;
             }
-        });
+        }, { stack: fromDetail });
     }
     
     // --- DATA HANDLING ---
@@ -1534,7 +1536,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     async function handleAnimalFormSubmit(e) {
         e.preventDefault();
-        const formData = new FormData(e.target);
+        const form = e.target;
+        const fromDetail = form.dataset.fromDetail === 'true';
+        const formData = new FormData(form);
         const id = formData.get('id') ? parseInt(formData.get('id')) : null;
         const newImageBlob = activeEditSession.newImageBlob;
         const name = (formData.get('name')).trim();
@@ -1575,14 +1579,27 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         
         await saveState();
-        cleanupAndCloseModal();
-        renderDashboard();
-        if (document.querySelector('#animal-search')) renderAnimalModal();
+        
+        if (fromDetail) {
+            activeEditSession = {};
+            const onPopState = () => {
+                window.removeEventListener('popstate', onPopState);
+                setTimeout(() => renderAnimalDetailModal(animal.id), 350);
+            };
+            window.addEventListener('popstate', onPopState);
+            history.back();
+        } else {
+            cleanupAndCloseModal();
+            renderDashboard();
+            if (document.querySelector('#animal-search')) renderAnimalModal();
+        }
     }
 
     async function handleSponsorFormSubmit(e) {
         e.preventDefault();
-        const formData = new FormData(e.target);
+        const form = e.target;
+        const fromDetail = form.dataset.fromDetail === 'true';
+        const formData = new FormData(form);
         const id = formData.get('id') ? parseInt(formData.get('id')) : null;
         const newImageBlob = activeEditSession.newImageBlob;
         const assignedAnimalIds = Array.from(formData.getAll('animalIds')).map(id => parseInt(id));
@@ -1619,9 +1636,20 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         
         await saveState();
-        cleanupAndCloseModal();
-        renderDashboard();
-        if (document.querySelector('#sponsor-search')) renderSponsorModal();
+
+        if (fromDetail) {
+            activeEditSession = {};
+            const onPopState = () => {
+                window.removeEventListener('popstate', onPopState);
+                setTimeout(() => renderSponsorDetailModal(sponsor.id), 350);
+            };
+            window.addEventListener('popstate', onPopState);
+            history.back();
+        } else {
+            cleanupAndCloseModal();
+            renderDashboard();
+            if (document.querySelector('#sponsor-search')) renderSponsorModal();
+        }
     }
 
     async function deleteAnimal(animalId, fromDetail = false) {
