@@ -6,14 +6,13 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black">
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🐔</text></svg>">
-    <link rel="apple-touch-icon" href="data:image/png;base64,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">
+    <link rel="apple-touch-icon" href="data:image/png;base64,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">
     <title>Chicken-App</title>
     <link rel="manifest" href='data:application/manifest+json,%7B%22name%22%3A%22Redneck%20Paradise%20-%20Chicken%20Farm%22%2C%22short_name%22%3A%22Chicken%20Farm%22%2C%22display%22%3A%22standalone%22%2C%22theme_color%22%3A%22%23B48460%22%2C%22background_color%22%3A%22%23e7f7f0%22%2C%22orientation%22%3A%22portrait%22%2C%22icons%22%3A%5B%7B%22src%22%3A%22data%3Aimage%2Fpng%3Bbase64%2CiVBORw0KGgoAAAANSUhEUgAAALQAAAC0CAYAAAA9zQYyAAAABGdBTUEAALGPC%2FxhBQAAACBjSFJNAAB6JgAAgIQAAPoAAACA6AAAdTAAAOpgAAA6mAAAF3CculE8AAAABmJLR0QAAAAAAAD5Q7t%2AAAACXBIWXMAAABIAAAASABGyWs%2BAAAIWElEQVR42u3dMW9cxxHEYc%2FMvffefc55PuDAgf8gJA4cOHDA4cDxAEiBA0cODhwkgAMCBA6cHyBw4ECt4ECtQIEEuHDgY%2B8z7733zHjWRLJ%2FZszYs2%2FfzIz3TNKl9XVfWbVajyRJ6p2ZPyRJ0tucvM0sSUrB5P1MkyQt0sm8mSVJS2XyfpYkLdDJvJklSUtl8n6WJC3Qybz5m1Zrvb5t25uSJGnzzbO7K0mSFifzZpYkLZXJ%2B1mStEAn82aWJC2Vyet%2Fy%2Fd93%2Fd9%2FE%2BSJEmSNNi2bUmSJGmxmMybWRIi83kvSOKzX5DP%2F33fH33fde%2FSJEnagMybWRIi898bJPH5L0jm81%2BQz%2F%2FPkiRJkqQNqPNmloTIfP4L4vn%2F%2Bb%2Bf8%2FkviM3nvyCP%2F%2Bf5L0jmH0uSJEnS5rFvNkmS%2Fvrf%2F%2FpP%2BJPNn%2F92%2F21%2BZv6w%2BeY%2F%2FG32jf9mf8u%2Bmf%2BWff7N7kuSJEnS5jPzZpaGiPy3D5Jkfsuk7%2Fv%2BP%2FvN%2F7v%2FNn%2FuN%2F8kSZIkSdr8JvNmloaIfLchkCRJWmMyb2ZpiMj%2F%2F0%2F%2B6%2F%2Fbf0mSJGqxms2bWRIi8%2FkviM3nvyCf%2F5%2F%2B6%2F8kSQNyb2ZJiMx%2F%2FSBJeheb%2BTNLQmS%2B%2BwdJkt%2FHzLtFkqS1sJk3szRE5P%2F%2BJ%2F%2B1f%2Fcf%2F5IkLVZm3sySEOmnv2Ce%2F5%2F%2F%2B3%2FN578gn%2F%2Bf%2F5MkSZKkDah8cyZJiMznvyCe%2F5%2F%2F%2B5Ik8fmvyOP%2F%2Bf5LkjmH0uSJEnS5rFvNkmS%2Fvrf%2F%2FpP%2BJPNn%2F92%2F21%2BZv6w%2BeY%2F%2FG32jf9mf8u%2Bmf%2BWff7N7kuSJEnS5jPzZpaGiPy3D5Jkfsuk7%2Fv%2BP%2FvN%2F7v%2FNn%2FuN%2F8kSZIkSdr8JvNmloaIfLchkCRJWmMyb2ZpiMj%2F%2F0%2F%2B6%2F%2Fbf0mSJGqxms2bWRIi8%2FkviM3nvyCf%2F%2FP%2Fb3%2BlSRqQ%2BTNLQmS%2B%2BgdJ%2F0t5s7srSYIUkMwaWhIj89w%2BSpOVy8DZNkqSlkcwbeRIi8v%2F%2BJ%2F%2BN%2F%2Ft%2F%2FyVJWm3mzSwJkfkiP5L5r%2F%2F7%2F%2Bq%2F%2F7u%2F%2FvX%2F%2BJEmSNA%2BD5JkvyCM5P%2F%2BP%2F%2Fv%2Fn7%2F%2Bfn1%2BY%2Fl55%2F%2FP5Z%2Fvn8X%2FL5H0mSJEkbj9ndJAJ6y%2F8n%2F7X%2Ftn%2BWf%2F77f9P%2B%2Fm9%2B3%2F77fyf%2Fv%2F%2Ft%2F%2BH%2F5v%2FWf%2F%2FzH8r%2F%2Fz%2F%2BP%2F%2Fz%2B%2B9ndpSRJkqQlM%2FNmlgSI%2FLdBEqT9jN1%2B%2B%2B7fv%2Bvv%2F23v7f%2F9nv%2F7f%2Ff%2F%2Fi%2F%2FBf%2F6%2F%2B%2Bf%2FY%2F%2Fvf%2F%2Bv%2F%2Bv%2Ftv%2Fuf%2F9P%2F%2Bf%2FZ%2F%2FzP%2F%2FP%2Ft%2F%2Fbf%2F%2Ff%2B9v%2B1%2F%2Fbf%2F9%2F%2Bf%2F%2Ff%2FiP7f%2F%2Fv%2F%2FP%2F6P%2Fm5mlSQJCnLybyZJSHij%2F8xS%2FJftu%2F7%2Fv8%2F%2F5f%2Fh%2F%2Fj%2F%2FB%2F%2Fj%2F%2Fj%2F%2FzH%2Fvf%2Fbf%2Fcf%2F77%2F8f%2F5f%2F6P%2FPv%2F9v%2Fee%2F8v%2F5P%2F9v%2Fov%2F%2Bv%2F7uZJUkSpCWZebNLQ8Q%2F%2F2NJ0hv2%2Fmb3JkmSJGkwzZtZGiL%2B%2BQeSJEmSlsl8myVBYsQffyBJkqTJupklSdLSLrNJkiRJqyTzZpaEyPxf8v%2F8HyVJmkvmzSwJkf%2B%2FSZIkadZ1JkmSJEmrJPNmlgSI%2FP9%2F8l%2B67%2Fv%2BP%2FtP%2Fnf%2F%2Bf%2F9f%2F9L0nS4l2beRIi8vkvSOKz%2F2n%2F%2B%2F9//p%2F%2F3f%2F6f%2F8%2F5%2F%2Bv%2Bfzf5IkSZIkLdAZN7MkBZ7%2FPXn8%2F%2FP%2Fnv%2Fz%2F%2Fr873l9%2F6%2F5fO%2F5fmf%2Fy%2Fz%2F%2F1%2Ff%2FvyX%2F8H0mSJEla1W82SZL%2B%2Bt%2F%2F%2B0%2F6k82f%2F3b%2FbX5m%2FrD55j%2F8bfaN%2F2Z%2Fy76Z%2F5Z9%2Fs3uS5IkSdKmM%2FNmloaIfPYPkqS%2FNknfd%2F3%2FZ7%2F5v%2Fdv82f%2B43%2FSRIkSZK0%2BU3mzSwJEfktiCRJWmMab2ZJiMj%2F%2F5P%2F%2Bv%2F235IkSdqIZvNmlgSIzOd%2FEJvP%2F0E%2B%2Fz%2Fb%2F%2FY%2F%2Fk%2Fy2f9JkjYg82aWhMh88g%2BSJL2JzLyZJSExnyRJkvw%2BL%2FNmkaS1kcybWRIi%2F%2F8n%2F7V%2F9x%2F%2FkuStFjNm1kSIvP5L4j3%2F%2Ff%2F%2Ft%2F%2F13%2F70PyX%2F%2Ff%2B9%2F%2FE%2F7c%2F%2Bxf%2FJ0mSJGkDzv9skiRpcTJvZmGIzJt%2FT574J%2F2f%2FpMkacMyb2ZJCMyaP0%2BStNndmyRJWiIzb2ZpiMw7I0mSpKWy8GZJCMz7KUmapKVLzkmSJGkkZ3NmloSIvJckSdpCZM4SJUmSJGkkc2aWhIi8lyRJ0hZlySRJkqSRmDaSJEmSpJXMm1kSIvJekqS1yTfvkmRJkqRNJW2SJEmaStokSZIkaStZ3yRJkqQ1kfmySIKkJbK%2BN5MkSZIkZ7tJkiSN5GyeJEmaStokSZIkaStZ3yRJkqQ1kfmySIKkJbK%2BN5MkSZIkZ7tJkiSN5GyeJEmaStokSZIkaStZ3yRJkqQ1kdn%2FBP3xK8R4Xl%2BbAAAAJXRFWHRkYXRlOmNyZWF0ZQAyMDI0LTA2LTIwVDE4OjQ4OjA4KzAwOjAwv4wB8AAAACV0RVh0ZGF0ZTptb2RpZnkAMjAyNC0wNi0yMFQxODo0ODowOCswMDowMDtxyP4AAAAodEVYdGRhdGU6dGltZXN0YW1wADIwMjQtMDYtMjBUMTg6NDg6MDgrMDA6MDD%2Bu%2F8SAAAAAElFTkSuQmCC%22%2C%22type%22%3A%22image%2Fpng%22%2C%22sizes%22%3A%22192x192%22%7D%2C%7B%22src%22%3A%22data%3Aimage%2Fpng%3Bbase64%2CiVBORw0KGgoAAAANSUhEUgAAALQAAAC0CAYAAAA9zQYyAAAABGdBTUEAALGPC%2FxhBQAAACBjSFJNAAB6JgAAgIQAAPoAAACA6AAAdTAAAOpgAAA6mAAAF3CculE8AAAABmJLR0QAAAAAAAD5Q7t%2AAAACXBIWXMAAABIAAAASABGyWs%2BAAAIWElEQVR42u3dMW9cxxHEYc%2FMvffefc55PuDAgf8gJA4cOHDA4cDxAEiBA0cODhwkgAMCBA6cHyBw4ECt4ECtQIEEuHDgY%2B8z7733zHjWRLJ%2FZszYs2%2FfzIz3TNKl9XVfWbVajyRJ6p2ZPyRJ0tucvM0sSUrB5P1MkyQt0sm8mSVJS2XyfpYkLdDJvJklSUtl8n6WJC3Qybz5m1Zrvb5t25uSJGnzzbO7K0mSFifzZpYkLZXJ%2B1mStEAn82aWJC2Vyet%2Fy%2Fd93%2Fd9%2FE%2BSJEmSNNi2bUmSJGmxmMybWRIi83kvSOKzX5DP%2F33fH33fde%2FSJEnagMybWRIi898bJPH5L0jm81%2BQz%2F%2FPkiRJkqQNqPNmloTIfP4L4vn%2F%2Bb%2Bf8%2FkviM3nvyCP%2F%2Bf5L0jmH0uSJEnS5rFvNkmS%2Fvrf%2F%2FpP%2BJPNn%2F92%2F21%2BZv6w%2BeY%2F%2FG32jf9mf8u%2Bmf%2BWff7N7kuSJEnS5jPzZpaGiPy3D5Jkfsuk7%2Fv%2BP%2FvN%2F7v%2FNn%2FuN%2F8kSZIkSdr8JvNmloaIfLchkCRJWmMyb2ZpiMj%2F%2F0%2F%2B6%2F%2Fbf0mSJGqxms2bWRIi8%2FkviM3nvyCf%2F5%2F%2B6%2F8kSQNyb2ZJiMx%2F%2FSBJeheb%2BTNLQmS%2B%2BwdJkt%2FHzLtFkqS1sJk3szRE5P%2F%2BJ%2F%2B1f%2Fcf%2F5IkLVZm3sySEOmnv2Ce%2F5%2F%2F%2B3%2FN578gn%2F%2Bf%2F5MkSZKkDah8cyZJiMznvyCe%2F5%2F%2F%2B5Ik8fmvyOP%2F%2Bf5LkjmH0uSJEnS5rFvNkmS%2Fvrf%2F%2FpP%2BJPNn%2F92%2F21%2BZv6w%2BeY%2F%2FG32jf9mf8u%2Bmf%2BWff7N7kuSJEnS5jPzZpaGiPy3D5Jkfsuk7%2Fv%2BP%2FvN%2F7v%2FNn%2FuN%2F8kSZIkSdr8JvNmloaIfLchkCRJWmMyb2ZpiMj%2F%2F0%2F%2B6%2F%2Fbf0mSJGqxms2bWRIi8%2FkviM3nvyCf%2F%2FP%2Fb3%2BlSRqQ%2BTNLQmS%2B%2BgdJ%2F0t5s7srSYIUkMwaWhIj89w%2BSpOVy8DZNkqSlkcwbeRIi8v%2F%2BJ%2F%2BN%2F%2Ft%2F%2FyVJWm3mzSwJkfkiP5L5r%2F%2F7%2F%2Bq%2F%2F7u%2F%2FvX%2F%2BJEmSNA%2BD5JkvyCM5P%2F%2BP%2F%2Fv%2Fn7%2F%2Bfn1%2BY%2Fl55%2F%2FP5Z%2Fvn8X%2FL5H0mSJEkbj9ndJAJ6y%2F8n%2F7X%2Ftn%2BWf%2F77f9P%2B%2Fm9%2B3%2F77fyf%2Fv%2F%2Ft%2F%2BH%2F5v%2FWf%2F%2FzH8r%2F%2Fz%2F%2BP%2F%2Fz%2B%2B9ndpSRJkqQlM%2FNmlgSI%2FLdBEqT9jN1%2B%2B%2B7fv%2Bvv%2F23v7f%2F9nv%2F7f%2Ff%2F%2Fi%2F%2FBf%2F6%2F%2B%2Bf%2FY%2F%2Fvf%2F%2Bv%2F%2Bv%2Ftv%2Fuf%2F9P%2F%2Bf%2FZ%2F%2FzP%2F%2FP%2Ft%2F%2Fbf%2F%2Ff%2B9v%2B1%2F%2Fbf%2F9%2F%2Bf%2F%2Ff%2FiP7f%2F%2Fv%2F%2FP%2F6P%2Fm5mlSQJCnLybyZJSHij%2F8xS%2FJftu%2F7%2Fv8%2F%2F5f%2Fh%2F%2Fj%2F%2FB%2F%2Fj%2F%2Fj%2F%2FzH%2Fvf%2Fbf%2Fcf%2F77%2F8f%2F5f%2F6P%2FPv%2F9v%2Fee%2F8v%2F5P%2F9v%2Fov%2F%2Bv%2F7uZJUkSpCWZebNLQ8Q%2F%2F2NJ0hv2%2Fmb3JkmSJGkwzZtZGiL%2B%2BQeSJEmSlsl8myVBYsQffyBJkqTJupklSdLSLrNJkiRJqyTzZpaEyPxf8v%2F8HyVJmkvmzSwJkf%2B%2FSZIkadZ1JkmSJEmrJPNmlgSI%2FP9%2F8l%2B67%2Fv%2BP%2FtP%2Fnf%2F%2Bf%2F9f%2F9L0nS4l2beRIi8vkvSOKz%2F2n%2F%2B%2F9//p%2F%2F3f%2F6f%2F8%2F5%2F%2Bv%2Bfzf5IkSZIkLdAZN7MkBZ7%2FPXn8%2F%2FP%2Fnv%2Fz%2F%2Fr873l9%2F6%2F5fO%2F5fmf%2Fy%2Fz%2F%2F1%2Ff%2FvyX%2F8H0mSJEla1W82SZL%2B%2Bt%2F%2F%2B0%2F6k82f%2F3b%2FbX5m%2FrD55j%2F8bfaN%2F2Z%2Fy76Z%2F5Z9%2Fs3uS5IkSdKmM%2FNmloaIfPYPkqS%2FNknfd%2F3%2FZ7%2F5v%2Fdv82f%2B43%2FSRIkSZK0%2BU3mzSwJEfktiCRJWmMab2ZJiMj%2F%2F5P%2F%2Bv%2F235IkSdqIZvNmlgSIzOd%2FEJvP%2F0E%2B%2Fz%2Fb%2F%2FY%2F%2Fk%2Fy2f9JkjYg82aWhMh88g%2BSJL2JzLyZJSExnyRJkvw%2BL%2FNmkaS1kcybWRIi%2F%2F8n%2F7V%2F9x%2F%2FkuStFjNm1kSIvP5L4j3%2F%2Ff%2F%2Ft%2F%2F13%2F70PyX%2F%2Ff%2B9%2F%2FE%2F7c%2F%2Bxf%2FJ0mSJGkDzv9skiRpcTJvZmGIzJt%2FT574J%2F2f%2FpMkacMyb2ZJCMyaP0%2BStNndmyRJWiIzb2ZpiMw7I0mSpKWy8GZJCMz7KUmapKVLzkmSJGkkZ3NmloSIvJckSdpCZM4SJUmSJGkkc2aWhIi8lyRJ0hZlySRJkqSRmDaSJEmSpJXMm1kSIvJekqS1yTfvkmRJkqRNJW2SJEmaStokSZIkaStZ3yRJkqQ1kfmySIKkJbK%2BN5MkSZIkZ7tJkiSN5GyeJEmaStokSZIkaStZ3yRJkqQ1kfmySIKkJbK%2BN5MkSZIkZ7tJkiSN5GyeJEmaStokSZIkaStZ3yRJkqQ1kdn%2FBP3xK8R4Xl%2BbAAAAJXRFWHRkYXRlOmNyZWF0ZQAyMDI0LTA2LTIwVDE4OjQ4OjA4KzAwOjAwv4wB8AAAACV0RVh0ZGF0ZTptb2RpZnkAMjAyNC0wNi0yMFQxODo0ODowOCswMDowMDtxyP4AAAAodEVYdGRhdGU6dGltZXN0YW1wADIwMjQtMDYtMjBUMTg6NDg6MDgrMDA6MDD%2Bu%2F8SAAAAAElFTkSuQmCC%22%2C%22type%22%3A%22image%2Fpng%22%2C%22sizes%22%3A%22512x512%22%7D%2C%7B%22src%22%3A%22data%3Aimage%2Fsvg%2Bxml%2C%3Csvg%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%20viewBox%3D%270%200%20100%20100%27%3E%3Ctext%20y%3D%27.9em%27%20font-size%3D%2790%27%3E%F0%9F%90%94%3C%2Ftext%3E%3C%2Fsvg%3E%22%2C%22type%22%3A%22image%2Fsvg%2Bxml%22%2C%22sizes%22%3A%22any%22%2C%22purpose%22%3A%22any%20maskable%22%7D%5D%7D'>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.7.1/chart.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@400;700&display=swap" rel="stylesheet">
     <style>
@@ -181,7 +180,7 @@
     <header class="farm-header p-4 shadow-lg sticky top-0 z-40 text-center">
         <div class="container mx-auto flex justify-center items-center">
               <h1 class="text-3xl md:text-5xl font-bold tracking-wider break-words fire-text">
-                  <span class="inline-block">Redneck Parad✊se</span> <span class="inline-block">- Chicken Farm</span>
+                  Redneck Parad✊se - Chicken Farm
               </h1>
         </div>
     </header>
@@ -275,7 +274,7 @@
 
     <script type="module">
 document.addEventListener('DOMContentLoaded', () => {
-    // The global variables Chart, Cropper, XLSX, and Papa are available from the CDN scripts in index.html.
+    // The global variables Chart, Cropper, and JSZip are available from the CDN scripts in index.html.
 
     let db;
     let activeEditSession = {};
@@ -681,7 +680,7 @@ document.addEventListener('DOMContentLoaded', () => {
         return `
             <div class="card overflow-hidden animal-list-card" data-id="${animal.id}" style="border-color:${borderColor};">
                 <img src="${imageUrl}" alt="${animal.name}" class="w-full h-40 object-cover rounded-t-lg pointer-events-none">
-                <div class="p-4 pointer-events-none">
+                <div class="p-4 pointer-events-none text-center">
                     <h4 class="font-bold text-xl">${animal.name} (${animal.species==='chicken'?'Huhn':'Ente'})</h4>
                     ${renderRingIndicator(animal)}
                     <p class="text-sm text-gray-600 dark:text-gray-400 flex items-center justify-center mt-1">
@@ -692,14 +691,17 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     async function createSponsorListItemHTML(sponsor) {
-        let imageHtml;
-        const fallbackImageHtml = `<div class="w-12 h-12 rounded-full mr-4 flex items-center justify-center" style="background-color: ${sponsorshipColors[sponsor.level]}"><span class="text-white font-bold text-xl">${sponsor.name.charAt(0)}</span></div>`;
+        const fallbackImageHtml = `
+            <div class="w-full h-40 rounded-t-lg flex items-center justify-center pointer-events-none" style="background-color: ${sponsorshipColors[sponsor.level]}">
+                <span class="text-white font-bold text-5xl">${sponsor.name.charAt(0)}</span>
+            </div>`;
         
+        let imageHtml;
         if (sponsor.hasCustomImage) {
             try {
                 const blob = await getImage(sponsor.id);
                 const url = blob ? createManagedObjectURL(blob) : null;
-                imageHtml = url ? `<img src="${url}" alt="${sponsor.name}" class="w-12 h-12 object-cover rounded-full mr-4">` : fallbackImageHtml;
+                imageHtml = url ? `<img src="${url}" alt="${sponsor.name}" class="w-full h-40 object-cover rounded-t-lg pointer-events-none">` : fallbackImageHtml;
             } catch (error) {
                 console.error(`Failed to load image for sponsor ${sponsor.id}`, error);
                 imageHtml = fallbackImageHtml;
@@ -708,27 +710,19 @@ document.addEventListener('DOMContentLoaded', () => {
             imageHtml = fallbackImageHtml;
         }
         
-        const sponsoredAnimals = state.animals.filter(a => a.sponsorId === sponsor.id);
-        let sponsoredAnimalsHtml = '';
-        if (sponsoredAnimals.length > 0) {
-            sponsoredAnimalsHtml = `
-                <div class="mt-2 text-xs text-gray-500 dark:text-gray-400">
-                    <strong>Patentiere (${sponsoredAnimals.length}):</strong>
-                    <span>${sponsoredAnimals.map(a => a.name).join(', ')}</span>
-                </div>`;
-        }
-
+        const sponsoredAnimalsCount = state.animals.filter(a => a.sponsorId === sponsor.id).length;
+    
         return `
-            <div class="card p-4 sponsor-list-card" data-id="${sponsor.id}" style="border-color: ${sponsorshipColors[sponsor.level]};">
-                <div class="flex justify-between items-start pointer-events-none">
-                    <div class="flex items-center">
-                        ${imageHtml}
-                        <div>
-                            <h4 class="font-bold text-lg flex items-center"><span class="sponsor-color-dot" style="background-color: ${sponsorshipColors[sponsor.level]}"></span>${sponsor.name}</h4>
-                            <p class="text-sm text-gray-600 dark:text-gray-400">Modell: ${sponsor.level}</p>
-                            ${sponsoredAnimalsHtml}
-                        </div>
-                    </div>
+            <div class="card overflow-hidden sponsor-list-card" data-id="${sponsor.id}" style="border-color: ${sponsorshipColors[sponsor.level]};">
+                ${imageHtml}
+                <div class="p-4 text-center pointer-events-none">
+                    <h4 class="font-bold text-xl">${sponsor.name}</h4>
+                    <p class="text-sm text-gray-600 dark:text-gray-400 flex items-center justify-center mt-1">
+                        <span class="sponsor-color-dot" style="background-color:${sponsorshipColors[sponsor.level]};"></span>${sponsor.level}
+                    </p>
+                    <p class="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                        Tiere: ${sponsoredAnimalsCount}
+                    </p>
                 </div>
             </div>`;
     }
@@ -920,21 +914,19 @@ document.addEventListener('DOMContentLoaded', () => {
     
     function renderFileModal() {
         const content = `
-            <h2 class="text-3xl font-bold mb-4">Dateimanagement</h2>
-            <p class="mb-6">Lade deine Tier- und Patendaten als Excel- oder CSV-Datei herunter oder lade eine bestehende Excel-Datei hoch, um deine Daten zu aktualisieren.</p>
+            <h2 class="text-3xl font-bold mb-4">Daten sichern & wiederherstellen</h2>
+            <p class="mb-6">Erstelle eine vollständige Sicherung aller deiner Daten (Tiere, Paten, Eier & Bilder) in einer einzigen ZIP-Datei. Diese Datei kannst du verwenden, um deine Daten auf einem anderen Gerät wiederherzustellen.</p>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div class="p-4 border rounded-lg">
-                    <h3 class="font-bold text-lg mb-2">Daten Herunterladen</h3>
-                    <div class="space-y-2">
-                        <button id="export-xlsx" class="w-full bg-blue-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-blue-600">Als Excel (.xlsx) exportieren</button>
-                        <button id="export-csv" class="w-full bg-gray-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-gray-600">Als CSV exportieren (3 Dateien)</button>
-                    </div>
+                <div class="p-4 border rounded-lg text-center flex flex-col">
+                    <h3 class="font-bold text-lg mb-2">Daten sichern</h3>
+                    <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">Speichere alle deine App-Daten in einer .zip-Datei.</p>
+                    <button id="export-zip" class="w-full bg-blue-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-blue-600 mt-auto">Komplett-Backup erstellen (.zip)</button>
                 </div>
-                <div class="p-4 border rounded-lg">
-                    <h3 class="font-bold text-lg mb-2">Daten Hochladen</h3>
-                    <label for="import-file" class="w-full text-center bg-green-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-green-600 cursor-pointer block">Excel-Datei importieren</label>
-                    <input type="file" id="import-file" class="hidden" accept=".xlsx, .xls">
-                    <p class="text-xs text-gray-500 dark:text-gray-400 mt-2">Hinweis: Beim Import werden bestehende Daten überschrieben. Bitte lade zuerst deine aktuellen Daten herunter, um die richtige Formatierung sicherzustellen.</p>
+                <div class="p-4 border rounded-lg text-center flex flex-col">
+                    <h3 class="font-bold text-lg mb-2">Daten wiederherstellen</h3>
+                     <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">Lade eine .zip-Sicherungsdatei hoch, um deine Daten zu importieren.</p>
+                    <label for="import-zip-file" class="w-full text-center bg-green-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-green-600 cursor-pointer block mt-auto">Backup importieren (.zip)</label>
+                    <input type="file" id="import-zip-file" class="hidden" accept=".zip">
                 </div>
             </div>
             <div class="mt-8 p-4 border-2 border-red-400 rounded-lg bg-red-50 dark:bg-red-900/20">
@@ -944,9 +936,8 @@ document.addEventListener('DOMContentLoaded', () => {
             </div>`;
         
         openModal(content, modal => {
-            modal.querySelector('#export-xlsx').addEventListener('click', exportXLSX);
-            modal.querySelector('#export-csv').addEventListener('click', exportCSV);
-            modal.querySelector('#import-file').addEventListener('change', importData);
+            modal.querySelector('#export-zip').addEventListener('click', exportDataAsZip);
+            modal.querySelector('#import-zip-file').addEventListener('change', importDataFromZip);
             modal.querySelector('#delete-all-data').addEventListener('click', deleteAllData);
         });
     }
@@ -1178,7 +1169,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 </select>
                 <button id="add-new-sponsor-btn" class="bg-blue-500 text-white font-bold py-2 px-4 rounded-full hover:bg-blue-600 whitespace-nowrap">Neuer Pate +</button>
             </div>
-            <div id="sponsor-list-container" class="space-y-3"><p>Lade Paten...</p></div>`;
+            <div id="sponsor-list-container" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4"><p>Lade Paten...</p></div>`;
     
         openModal(contentShell, async modal => {
             const searchInput = modal.querySelector('#sponsor-search');
@@ -1787,156 +1778,92 @@ document.addEventListener('DOMContentLoaded', () => {
         modalWrapper.querySelector('#close-export-modal-btn').addEventListener('click', closeModal);
     }
     
-    async function exportXLSX() {
+    async function exportDataAsZip() {
         try {
-            showToast("Daten werden vorbereitet...");
+            showToast("Daten werden für den Export vorbereitet...");
+            const zip = new JSZip();
 
-            const animalsWithImages = await Promise.all(state.animals.map(async (animal) => {
-                const copy = { ...animal };
-                if (copy.hasCustomImage) {
-                    try {
-                        const blob = await getImage(copy.id);
-                        if (blob) {
-                            copy.imageUrl = await blobToBase64(blob);
-                        }
-                    } catch (e) {
-                        console.error(`Error getting image for animal ${copy.id}`, e);
+            // Add all non-image data to a single JSON file
+            zip.file("data.json", JSON.stringify(state));
+
+            const imageFolder = zip.folder("images");
+            const itemsWithImages = [...state.animals, ...state.sponsors].filter(item => item.hasCustomImage);
+
+            const imagePromises = itemsWithImages.map(async item => {
+                try {
+                    const blob = await getImage(item.id);
+                    if (blob) {
+                        // Use a consistent extension, .png is good as the cropper defaults to it.
+                        imageFolder.file(`${item.id}.png`, blob);
                     }
+                } catch (e) {
+                    console.error(`Error fetching image for item ${item.id}`, e);
                 }
-                return copy;
-            }));
+            });
 
-            const sponsorsWithImages = await Promise.all(state.sponsors.map(async (sponsor) => {
-                const copy = { ...sponsor };
-                if (copy.hasCustomImage) {
-                    try {
-                        const blob = await getImage(copy.id);
-                        if (blob) {
-                            copy.imageUrl = await blobToBase64(blob);
-                        }
-                    } catch (e) {
-                        console.error(`Error getting image for sponsor ${copy.id}`, e);
-                    }
-                }
-                return copy;
-            }));
+            await Promise.all(imagePromises);
 
-            const animalSheet = XLSX.utils.json_to_sheet(animalsWithImages);
-            const sponsorSheet = XLSX.utils.json_to_sheet(sponsorsWithImages);
-            const eggSheet = XLSX.utils.json_to_sheet(state.eggLogs);
+            const zipBlob = await zip.generateAsync({ type: "blob" });
+            const fileName = `Chicken-App-Backup-${new Date().toISOString().split('T')[0]}.zip`;
+            const file = new File([zipBlob], fileName, { type: zipBlob.type });
 
-            const workbook = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(workbook, animalSheet, "Tiere");
-            XLSX.utils.book_append_sheet(workbook, sponsorSheet, "Paten");
-            XLSX.utils.book_append_sheet(workbook, eggSheet, "Eier");
-
-            const fileName = `Chicken-App-Daten-${new Date().toISOString().split('T')[0]}.xlsx`;
-            const wbout = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' });
-            const blob = new Blob([wbout], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
-            const file = new File([blob], fileName, { type: blob.type });
-
-            showSimpleExportModal(blob, fileName, file);
+            showSimpleExportModal(zipBlob, fileName, file);
             
         } catch (error) {
-            console.error("Export Error:", error);
-            showAlert("Ein Fehler ist beim Exportieren der Daten aufgetreten.");
-        }
-    }
-
-    async function exportCSV() {
-        try {
-            showToast("CSV-Daten werden vorbereitet...");
-            
-            const triggerDownload = (blob, fileName) => {
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.style.display = 'none';
-                a.href = url;
-                a.download = fileName;
-                document.body.appendChild(a);
-                a.click();
-                document.body.removeChild(a);
-                // Delay revoke for browser compatibility
-                setTimeout(() => URL.revokeObjectURL(url), 100);
-            };
-
-            const today = new Date().toISOString().split('T')[0];
-            const sanitizeForCSV = (item) => {
-                const newItem = { ...item };
-                delete newItem.hasCustomImage;
-                delete newItem.imageUrl;
-                return newItem;
-            };
-
-            if (state.animals.length > 0) {
-                const animalsCSV = Papa.unparse(state.animals.map(sanitizeForCSV));
-                const animalsBlob = new Blob([`\uFEFF${animalsCSV}`], { type: 'text/csv;charset=utf-8;' });
-                triggerDownload(animalsBlob, `Tiere-Export-${today}.csv`);
-            }
-            if (state.sponsors.length > 0) {
-                const sponsorsCSV = Papa.unparse(state.sponsors.map(sanitizeForCSV));
-                const sponsorsBlob = new Blob([`\uFEFF${sponsorsCSV}`], { type: 'text/csv;charset=utf-8;' });
-                triggerDownload(sponsorsBlob, `Paten-Export-${today}.csv`);
-            }
-            if (state.eggLogs.length > 0) {
-                const eggLogsCSV = Papa.unparse(state.eggLogs);
-                const eggLogsBlob = new Blob([`\uFEFF${eggLogsCSV}`], { type: 'text/csv;charset=utf-8;' });
-                triggerDownload(eggLogsBlob, `Eier-Export-${today}.csv`);
-            }
-            
-            showAlert("Export gestartet. Ihr Browser fordert Sie möglicherweise auf, das Herunterladen mehrerer Dateien zu genehmigen.");
-        } catch (error) {
-            console.error("CSV Export Error:", error);
-            showAlert("Ein Fehler ist beim Exportieren der CSV-Daten aufgetreten.");
+            console.error("ZIP Export Error:", error);
+            showAlert("Ein Fehler ist beim Erstellen der ZIP-Datei aufgetreten.");
         }
     }
     
-    function importData(event) {
+    async function importDataFromZip(event) {
         const file = event.target.files[0];
         if (!file) return;
-    
-        const reader = new FileReader();
-        reader.onload = async e => {
-            const data = new Uint8Array(e.target.result);
-            const workbook = XLSX.read(data, { type: 'array' });
-    
-            try {
-                const importedAnimals = XLSX.utils.sheet_to_json(workbook.Sheets['Tiere']);
-                const importedSponsors = XLSX.utils.sheet_to_json(workbook.Sheets['Paten']);
-    
-                await Promise.all(importedAnimals.map(async (animal) => {
-                    if (animal.imageUrl && animal.imageUrl.startsWith('data:image')) {
-                        const blob = await base64ToBlob(animal.imageUrl);
-                        await saveImage(animal.id, blob);
-                        animal.hasCustomImage = true;
-                        delete animal.imageUrl;
-                    }
-                }));
-    
-                await Promise.all(importedSponsors.map(async (sponsor) => {
-                    if (sponsor.imageUrl && sponsor.imageUrl.startsWith('data:image')) {
-                        const blob = await base64ToBlob(sponsor.imageUrl);
-                        await saveImage(sponsor.id, blob);
-                        sponsor.hasCustomImage = true;
-                        delete sponsor.imageUrl;
-                    }
-                }));
-    
-                state.animals = importedAnimals;
-                state.sponsors = importedSponsors;
-                state.eggLogs = XLSX.utils.sheet_to_json(workbook.Sheets['Eier']);
-    
-                await saveState(false);
-                renderDashboard();
-                history.back();
-                showToast("Daten erfolgreich importiert!");
-    
-            } catch (err) {
-                console.error("Import Error:", err);
-                showAlert("Fehler beim Importieren der Datei. Stellen Sie sicher, dass die Blätter 'Tiere', 'Paten' und 'Eier' existieren und korrekt formatiert sind.");
+
+        if (!await showConfirmation("Möchtest du wirklich die Daten aus dieser Datei importieren? Alle aktuellen Daten in der App werden überschrieben.")) {
+            event.target.value = ''; // Reset file input
+            return;
+        }
+        
+        showToast("Import wird gestartet...");
+
+        try {
+            const zip = await JSZip.loadAsync(file);
+            const dataFile = zip.file("data.json");
+
+            if (!dataFile) {
+                throw new Error("Die ZIP-Datei enthält keine 'data.json'.");
             }
-        };
-        reader.readAsArrayBuffer(file);
+
+            const newState = JSON.parse(await dataFile.async("string"));
+            
+            // Clear all old images before importing new ones
+            const allOldItems = [...state.animals, ...state.sponsors].filter(i => i.hasCustomImage);
+            await Promise.all(allOldItems.map(item => deleteImage(item.id).catch(e => console.error(`Failed to delete old image ${item.id}`, e))));
+
+            const imageFolder = zip.folder("images");
+            const importPromises = [];
+            imageFolder.forEach((relativePath, imageFile) => {
+                const id = parseInt(relativePath.split('.')[0]);
+                if (!isNaN(id)) {
+                    const promise = imageFile.async("blob").then(blob => saveImage(id, blob));
+                    importPromises.push(promise);
+                }
+            });
+
+            await Promise.all(importPromises);
+
+            state = newState;
+            await saveState(false);
+            renderDashboard();
+            history.back();
+            showToast("Daten erfolgreich importiert!");
+
+        } catch (err) {
+            console.error("ZIP Import Error:", err);
+            showAlert("Fehler beim Importieren der ZIP-Datei. Stellen Sie sicher, dass es sich um eine gültige Sicherungsdatei dieser App handelt.");
+        } finally {
+            event.target.value = ''; // Reset file input
+        }
     }
     
     // --- THEME & INIT ---
