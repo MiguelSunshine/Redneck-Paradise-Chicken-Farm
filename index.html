@@ -1343,20 +1343,6 @@ document.addEventListener('DOMContentLoaded', () => {
         const placeholderName = animal ? '' : funnyAnimalNames[Math.floor(Math.random() * funnyAnimalNames.length)];
         const sponsorsOptions = state.sponsors.map(s => `<option value="${s.id}" ${animal && animal.sponsorId == s.id ? 'selected' : ''}>${s.name}</option>`).join('');
     
-        let imageUrl = '';
-        if (animal && animal.hasCustomImage) {
-            try {
-                const blob = await getImage(animal.id);
-                if (blob) {
-                    imageUrl = createManagedObjectURL(blob);
-                }
-            } catch (e) {
-                console.error(e);
-            }
-        } else if (animal && animal.imageUrl) {
-            imageUrl = animal.imageUrl;
-        }
-    
         const content = `
             <h2 class="text-3xl font-bold mb-4">${title}</h2>
             <form id="animal-edit-form" class="space-y-4">
@@ -1392,17 +1378,36 @@ document.addEventListener('DOMContentLoaded', () => {
                     <button type="button" id="take-photo" class="flex-1 bg-gray-200 dark:bg-gray-600 dark:hover:bg-gray-500 text-gray-800 dark:text-gray-200 font-bold py-2 px-4 rounded-lg hover:bg-gray-300">📸 Foto aufnehmen</button>
                     <button type="button" id="upload-photo" class="flex-1 bg-gray-200 dark:bg-gray-600 dark:hover:bg-gray-500 text-gray-800 dark:text-gray-200 font-bold py-2 px-4 rounded-lg hover:bg-gray-300">📁 Datei hochladen</button>
                 </div>
-                <div id="image-preview-container" class="mt-2">${imageUrl ? `<img src="${imageUrl}" class="h-20 w-20 object-cover rounded-full">` : ''}</div>
+                <div id="image-preview-container" class="mt-2"></div>
                 <div class="pt-4">
                     <button type="submit" id="save-btn" class="w-full bg-green-500 text-white font-bold py-3 px-6 rounded-lg text-lg hover:bg-green-600 disabled:bg-gray-400 disabled:cursor-not-allowed" ${animal ? '' : 'disabled'}>Speichern</button>
                 </div>
             </form>`;
     
-        openModal(content, modal => {
+        openModal(content, async modal => {
             const saveBtn = modal.querySelector('#save-btn');
             modal.querySelector('form').addEventListener('input', () => saveBtn.disabled = false);
             setupImageUploader(modal, saveBtn);
             modal.querySelector('#animal-edit-form').addEventListener('submit', handleAnimalFormSubmit);
+            
+            const imagePreviewContainer = modal.querySelector('#image-preview-container');
+            let imageUrl = '';
+            if (animal && animal.hasCustomImage) {
+                try {
+                    const blob = await getImage(animal.id);
+                    if (blob) {
+                        imageUrl = createManagedObjectURL(blob);
+                    }
+                } catch (e) {
+                    console.error(e);
+                }
+            } else if (animal && animal.imageUrl) {
+                imageUrl = animal.imageUrl;
+            }
+
+            if (imageUrl) {
+                imagePreviewContainer.innerHTML = `<img src="${imageUrl}" class="h-20 w-20 object-cover rounded-full">`;
+            }
         });
     }
     
@@ -1417,18 +1422,6 @@ document.addEventListener('DOMContentLoaded', () => {
             const isChecked = sponsor && animal.sponsorId === sponsor.id;
             return `<label class="flex items-center space-x-2"><input type="checkbox" name="animalIds" value="${animal.id}" ${isChecked ? 'checked' : ''} class="rounded"><span>${animal.name} (${animal.species === 'chicken' ? 'Huhn' : 'Ente'})</span></label>`;
         }).join('');
-    
-        let imageUrl = '';
-        if (sponsor && sponsor.hasCustomImage) {
-            try {
-                const blob = await getImage(sponsor.id);
-                if (blob) {
-                    imageUrl = createManagedObjectURL(blob);
-                }
-            } catch (e) {
-                console.error(e);
-            }
-        }
     
         const content = `
             <h2 class="text-3xl font-bold mb-4">${title}</h2>
@@ -1452,17 +1445,33 @@ document.addEventListener('DOMContentLoaded', () => {
                     <button type="button" id="take-photo" class="flex-1 bg-gray-200 dark:bg-gray-600 dark:hover:bg-gray-500 text-gray-800 dark:text-gray-200 font-bold py-2 px-4 rounded-lg hover:bg-gray-300">📸 Foto aufnehmen</button>
                     <button type="button" id="upload-photo" class="flex-1 bg-gray-200 dark:bg-gray-600 dark:hover:bg-gray-500 text-gray-800 dark:text-gray-200 font-bold py-2 px-4 rounded-lg hover:bg-gray-300">📁 Datei hochladen</button>
                 </div>
-                <div id="image-preview-container" class="mt-2">${imageUrl ? `<img src="${imageUrl}" class="h-20 w-20 object-cover rounded-full">` : ''}</div>
+                <div id="image-preview-container" class="mt-2"></div>
                 <div class="pt-4">
                     <button type="submit" id="save-btn" class="w-full bg-green-500 text-white font-bold py-3 px-6 rounded-lg text-lg hover:bg-green-600 disabled:bg-gray-400 disabled:cursor-not-allowed" ${sponsor ? '' : 'disabled'}>Speichern</button>
                 </div>
             </form>`;
     
-        openModal(content, modal => {
+        openModal(content, async modal => {
             const saveBtn = modal.querySelector('#save-btn');
             modal.querySelector('form').addEventListener('input', () => saveBtn.disabled = false);
             setupImageUploader(modal, saveBtn);
             modal.querySelector('#sponsor-edit-form').addEventListener('submit', handleSponsorFormSubmit);
+
+            const imagePreviewContainer = modal.querySelector('#image-preview-container');
+            let imageUrl = '';
+            if (sponsor && sponsor.hasCustomImage) {
+                try {
+                    const blob = await getImage(sponsor.id);
+                    if (blob) {
+                        imageUrl = createManagedObjectURL(blob);
+                    }
+                } catch (e) {
+                    console.error(e);
+                }
+            }
+            if (imageUrl) {
+                imagePreviewContainer.innerHTML = `<img src="${imageUrl}" class="h-20 w-20 object-cover rounded-full">`;
+            }
         });
     }
     
