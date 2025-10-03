@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="de">
 <head>
@@ -969,35 +968,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     async function renderAnimalModal(options = {}) {
         const { filter = '', sponsorFilter = 'all', sortBy = 'createdAt_desc' } = options;
-        const sponsorsMap = new Map(state.sponsors.map(s => [s.id, s]));
-        let filteredAnimals = state.animals;
-
-        if (sponsorFilter === 'sponsored') {
-            filteredAnimals = filteredAnimals.filter(a => a.sponsorId);
-        } else if (sponsorFilter === 'unsponsored' || sponsorFilter === 'none') {
-            filteredAnimals = filteredAnimals.filter(a => !a.sponsorId);
-        }
-
-        if (filter) {
-            const s = filter.toLowerCase();
-            filteredAnimals = filteredAnimals.filter(a => {
-                const sp = a.sponsorId ? sponsorsMap.get(a.sponsorId) : null;
-                return a.name.toLowerCase().includes(s) || a.species.toLowerCase().includes(s) || (sp && sp.name.toLowerCase().includes(s));
-            });
-        }
-
-        filteredAnimals.sort((a, b) => {
-            switch (sortBy) {
-                case 'name_asc': return a.name.localeCompare(b.name);
-                case 'createdAt_desc': return b.createdAt - a.createdAt;
-                case 'createdAt_asc': return a.createdAt - b.createdAt;
-                default: return 0;
-            }
-        });
-        const animalCardsPromises = filteredAnimals.map(animal => createAnimalCardHTML(animal, sponsorsMap));
-        const animalCardsHtml = (await Promise.all(animalCardsPromises)).join('');
-
-        const content = `
+        
+        const contentShell = `
             <h2 class="text-3xl font-bold mb-4">Tierübersicht</h2>
             <div class="mb-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2">
                 <input type="text" id="animal-search" class="w-full p-2 border rounded-lg sm:col-span-2 lg:col-span-1" placeholder="Suche..." value="${filter}">
@@ -1013,12 +985,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 </select>
                 <button id="add-new-animal-btn" class="bg-green-500 text-white font-bold py-2 px-4 rounded-full hover:bg-green-600 whitespace-nowrap">Neues Tier +</button>
             </div>
-            <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">${animalCardsHtml || '<p>Keine Tiere gefunden.</p>'}</div>
+            <div id="animal-list-container" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4"><p>Lade Tiere...</p></div>
         `;
-        openModal(content, m => {
+        
+        openModal(contentShell, async m => {
             const searchInput = m.querySelector('#animal-search');
             const sortSelect = m.querySelector('#animal-sort');
             const sponsorFilterSelect = m.querySelector('#animal-sponsor-filter');
+            const listContainer = m.querySelector('#animal-list-container');
             
             const applyFilters = () => {
                 renderAnimalModal({
@@ -1031,10 +1005,39 @@ document.addEventListener('DOMContentLoaded', () => {
             searchInput.addEventListener('input', applyFilters);
             sortSelect.addEventListener('change', applyFilters);
             sponsorFilterSelect.addEventListener('change', applyFilters);
-            
             m.querySelector('#add-new-animal-btn').addEventListener('click', () => renderEditAnimalModal());
+            
+            const sponsorsMap = new Map(state.sponsors.map(s => [s.id, s]));
+            let filteredAnimals = state.animals;
+
+            if (sponsorFilter === 'sponsored') {
+                filteredAnimals = filteredAnimals.filter(a => a.sponsorId);
+            } else if (sponsorFilter === 'unsponsored' || sponsorFilter === 'none') {
+                filteredAnimals = filteredAnimals.filter(a => !a.sponsorId);
+            }
+
+            if (filter) {
+                const s = filter.toLowerCase();
+                filteredAnimals = filteredAnimals.filter(a => {
+                    const sp = a.sponsorId ? sponsorsMap.get(a.sponsorId) : null;
+                    return a.name.toLowerCase().includes(s) || a.species.toLowerCase().includes(s) || (sp && sp.name.toLowerCase().includes(s));
+                });
+            }
+
+            filteredAnimals.sort((a, b) => {
+                switch (sortBy) {
+                    case 'name_asc': return a.name.localeCompare(b.name);
+                    case 'createdAt_desc': return b.createdAt - a.createdAt;
+                    case 'createdAt_asc': return a.createdAt - b.createdAt;
+                    default: return 0;
+                }
+            });
+            const animalCardsPromises = filteredAnimals.map(animal => createAnimalCardHTML(animal, sponsorsMap));
+            const animalCardsHtml = (await Promise.all(animalCardsPromises)).join('');
+
+            listContainer.innerHTML = animalCardsHtml || '<p>Keine Tiere gefunden.</p>';
             m.querySelectorAll('.animal-list-card').forEach(c => c.addEventListener('click', (e) => renderAnimalDetailModal(parseInt(e.currentTarget.dataset.id))));
-        });
+        }, { stack: false });
     }
     
     async function renderAnimalDetailModal(animalId) {
@@ -1070,7 +1073,7 @@ document.addEventListener('DOMContentLoaded', () => {
             </div>`;
     
         openModal(content, async modal => {
-            modal.querySelector('#back-to-list-btn').addEventListener('click', () => history.back());
+            modal.querySelector('#back-to-list-btn').addEventListener('click', () => renderAnimalModal());
             modal.querySelector('#edit-from-detail-btn').addEventListener('click', () => renderEditAnimalModal(animalId, { fromDetail: true }));
             modal.querySelector('#delete-from-detail-btn').addEventListener('click', () => deleteAnimal(animalId, true));
 
@@ -1148,42 +1151,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 };
                 reader.readAsDataURL(file);
             });
-        }, { stack: true });
+        }, { stack: false });
     }
 
     async function renderSponsorModal(options = {}) {
         const { filter = '', sortBy = 'name_asc', levelFilter = 'alle' } = options;
-        let filteredSponsors = state.sponsors;
-    
-        if (filter) {
-            const searchTerm = filter.toLowerCase();
-            filteredSponsors = filteredSponsors.filter(sp => sp.name.toLowerCase().includes(searchTerm));
-        }
-    
-        if (levelFilter !== 'alle') {
-            filteredSponsors = filteredSponsors.filter(sp => sp.level === levelFilter);
-        }
-    
-        const levelOrder = { "King Edition": 1, "Gold": 2, "Silber": 3 };
-        filteredSponsors.sort((a, b) => {
-            switch (sortBy) {
-                case 'name_asc':
-                    return a.name.localeCompare(b.name);
-                case 'level':
-                    return levelOrder[a.level] - levelOrder[b.level];
-                case 'animal_count':
-                    const countA = state.animals.filter(an => an.sponsorId === a.id).length;
-                    const countB = state.animals.filter(an => an.sponsorId === b.id).length;
-                    return countB - countA;
-                default:
-                    return 0;
-            }
-        });
-    
-        const sponsorListPromises = filteredSponsors.map(createSponsorListItemHTML);
-        const sponsorListHtml = (await Promise.all(sponsorListPromises)).join('');
-    
-        const content = `
+        
+        const contentShell = `
             <h2 class="text-3xl font-bold mb-4">Patenübersicht</h2>
             <div class="mb-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2">
                 <input type="text" id="sponsor-search" class="w-full p-2 border rounded-lg sm:col-span-2 lg:col-span-1" placeholder="Suche..." value="${filter}">
@@ -1200,12 +1174,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 </select>
                 <button id="add-new-sponsor-btn" class="bg-blue-500 text-white font-bold py-2 px-4 rounded-full hover:bg-blue-600 whitespace-nowrap">Neuer Pate +</button>
             </div>
-            <div class="space-y-3">${sponsorListHtml || '<p>Keine Paten gefunden.</p>'}</div>`;
+            <div id="sponsor-list-container" class="space-y-3"><p>Lade Paten...</p></div>`;
     
-        openModal(content, modal => {
+        openModal(contentShell, async modal => {
             const searchInput = modal.querySelector('#sponsor-search');
             const sortSelect = modal.querySelector('#sponsor-sort');
             const levelFilterSelect = modal.querySelector('#sponsor-level-filter');
+            const listContainer = modal.querySelector('#sponsor-list-container');
             
             const rerender = () => {
                 renderSponsorModal({ filter: searchInput.value, sortBy: sortSelect.value, levelFilter: levelFilterSelect.value });
@@ -1214,10 +1189,38 @@ document.addEventListener('DOMContentLoaded', () => {
             searchInput.addEventListener('input', rerender);
             sortSelect.addEventListener('change', rerender);
             levelFilterSelect.addEventListener('change', rerender);
-            
             modal.querySelector('#add-new-sponsor-btn').addEventListener('click', () => renderEditSponsorModal());
+
+            let filteredSponsors = state.sponsors;
+    
+            if (filter) {
+                const searchTerm = filter.toLowerCase();
+                filteredSponsors = filteredSponsors.filter(sp => sp.name.toLowerCase().includes(searchTerm));
+            }
+        
+            if (levelFilter !== 'alle') {
+                filteredSponsors = filteredSponsors.filter(sp => sp.level === levelFilter);
+            }
+        
+            const levelOrder = { "King Edition": 1, "Gold": 2, "Silber": 3 };
+            filteredSponsors.sort((a, b) => {
+                switch (sortBy) {
+                    case 'name_asc': return a.name.localeCompare(b.name);
+                    case 'level': return levelOrder[a.level] - levelOrder[b.level];
+                    case 'animal_count':
+                        const countA = state.animals.filter(an => an.sponsorId === a.id).length;
+                        const countB = state.animals.filter(an => an.sponsorId === b.id).length;
+                        return countB - countA;
+                    default: return 0;
+                }
+            });
+        
+            const sponsorListPromises = filteredSponsors.map(createSponsorListItemHTML);
+            const sponsorListHtml = (await Promise.all(sponsorListPromises)).join('');
+        
+            listContainer.innerHTML = sponsorListHtml || '<p>Keine Paten gefunden.</p>';
             modal.querySelectorAll('.sponsor-list-card').forEach(c => c.addEventListener('click', (e) => renderSponsorDetailModal(parseInt(e.currentTarget.dataset.id))));
-        });
+        }, { stack: false });
     }
 
     async function renderSponsorDetailModal(sponsorId) {
@@ -1251,7 +1254,7 @@ document.addEventListener('DOMContentLoaded', () => {
             </div>`;
     
         openModal(content, async modal => {
-            modal.querySelector('#back-to-sponsor-list-btn').addEventListener('click', () => history.back());
+            modal.querySelector('#back-to-sponsor-list-btn').addEventListener('click', () => renderSponsorModal());
             modal.querySelector('#edit-sponsor-from-detail-btn').addEventListener('click', () => renderEditSponsorModal(sponsorId, { fromDetail: true }));
             modal.querySelector('#delete-sponsor-from-detail-btn').addEventListener('click', () => deleteSponsor(sponsorId, true));
 
@@ -1333,7 +1336,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 };
                 reader.readAsDataURL(file);
             });
-        }, { stack: true });
+        }, { stack: false });
     }
     
     async function renderEditAnimalModal(animalId = null, options = {}) {
@@ -1409,7 +1412,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (imageUrl) {
                 imagePreviewContainer.innerHTML = `<img src="${imageUrl}" class="h-20 w-20 object-cover rounded-full">`;
             }
-        }, { stack: fromDetail });
+        }, { stack: false });
     }
     
     async function renderEditSponsorModal(sponsorId = null, options = {}) {
@@ -1474,7 +1477,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (imageUrl) {
                 imagePreviewContainer.innerHTML = `<img src="${imageUrl}" class="h-20 w-20 object-cover rounded-full">`;
             }
-        }, { stack: fromDetail });
+        }, { stack: false });
     }
     
     // --- DATA HANDLING ---
@@ -1662,7 +1665,7 @@ document.addEventListener('DOMContentLoaded', () => {
             await saveState();
             renderDashboard();
             if (fromDetail) {
-                history.back();
+                renderAnimalModal();
             } else {
                 renderAnimalModal();
             }
@@ -1684,7 +1687,7 @@ document.addEventListener('DOMContentLoaded', () => {
             await saveState();
             renderDashboard();
             if (fromDetail) {
-                history.back();
+                renderSponsorModal();
             } else {
                 renderSponsorModal();
             }
