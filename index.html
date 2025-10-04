@@ -558,6 +558,41 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         });
     }
+
+    async function showDestructiveConfirmation(message, confirmationText) {
+        return new Promise(resolve => {
+            const confirmWrapper = document.createElement('div');
+            confirmWrapper.className = 'modal-wrapper fixed inset-0 bg-black bg-opacity-60 flex justify-center items-center z-[100] p-4';
+            const content = `
+                <div class="modal-content w-full max-w-sm p-6">
+                    <p class="text-lg mb-4">${message}</p>
+                    <p class="text-sm text-gray-500 dark:text-gray-300 mb-4">Um fortzufahren, tippe "<strong class="text-red-500 font-bold">${confirmationText}</strong>" in das Feld ein.</p>
+                    <input type="text" id="destructive-confirm-input" class="w-full p-2 border rounded-lg mb-4 bg-white dark:bg-gray-800" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
+                    <div class="flex justify-end gap-4">
+                        <button id="confirm-cancel" class="bg-gray-500 text-white font-bold py-2 px-6 rounded-full hover:bg-gray-600">Abbrechen</button>
+                        <button id="confirm-ok" class="bg-red-500 text-white font-bold py-2 px-6 rounded-full hover:bg-red-600 disabled:bg-red-300 disabled:cursor-not-allowed" disabled>Löschen</button>
+                    </div>
+                </div>`;
+            confirmWrapper.innerHTML = content;
+            document.body.appendChild(confirmWrapper);
+
+            const input = confirmWrapper.querySelector('#destructive-confirm-input');
+            const okBtn = confirmWrapper.querySelector('#confirm-ok');
+
+            input.addEventListener('input', () => {
+                okBtn.disabled = input.value !== confirmationText;
+            });
+
+            okBtn.addEventListener('click', () => {
+                confirmWrapper.remove();
+                resolve(true);
+            });
+            confirmWrapper.querySelector('#confirm-cancel').addEventListener('click', () => {
+                confirmWrapper.remove();
+                resolve(false);
+            });
+        });
+    }
     
     // --- UI COMPONENTS & RENDERING ---
     function renderDashboard() {
@@ -706,6 +741,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 console.error(`Failed to load image for sponsor ${sponsor.id}`, error);
                 imageHtml = fallbackImageHtml;
             }
+        } else if (sponsor.imageUrl) {
+            imageHtml = `<img src="${sponsor.imageUrl}" alt="${sponsor.name}" class="w-full h-40 object-cover rounded-t-lg pointer-events-none">`;
         } else {
             imageHtml = fallbackImageHtml;
         }
@@ -834,7 +871,10 @@ document.addEventListener('DOMContentLoaded', () => {
             <div class="mt-8">
                 <div class="flex justify-between items-center mb-2">
                     <h3 class="font-bold text-xl">Historie</h3>
-                    <button id="add-past-egg-log-btn" class="bg-blue-500 text-white font-bold py-1 px-3 rounded-full text-sm hover:bg-blue-600">Nachtragen</button>
+                    <div class="flex items-center gap-2">
+                        <button id="add-past-egg-log-btn" class="bg-blue-500 text-white font-bold py-1 px-3 rounded-full text-sm hover:bg-blue-600">Nachtragen</button>
+                        <button id="clear-egg-log-btn" class="bg-red-500 text-white font-bold py-1 px-3 rounded-full text-sm hover:bg-red-600">Logbuch löschen</button>
+                    </div>
                 </div>
                 <div class="max-h-60 overflow-y-auto border rounded-lg p-2">
                     <table class="w-full text-left">
@@ -877,6 +917,7 @@ document.addEventListener('DOMContentLoaded', () => {
             });
 
             modal.querySelector('#add-past-egg-log-btn').addEventListener('click', renderAddPastEggLogModal);
+            modal.querySelector('#clear-egg-log-btn').addEventListener('click', handleClearEggLogs);
         });
     }
 
@@ -1112,6 +1153,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     const processBlob = async (blob) => {
                         await saveImage(animal.id, blob);
                         animal.hasCustomImage = true;
+                        animal.lastModified = Date.now();
                         delete animal.imageUrl;
                         await saveState();
                         showToast('Bild erfolgreich aktualisiert!');
@@ -1266,6 +1308,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 } catch (e) {
                     console.error(e);
                 }
+            } else if (sponsor.imageUrl) {
+                 imageContentHtml = `<img src="${sponsor.imageUrl}" alt="${sponsor.name}" class="detail-image w-48 h-48 object-cover rounded-full border-4" style="border-color:${sponsorshipColors[sponsor.level]}">`;
+                 hasImage = true;
             }
 
             if (!hasImage) {
@@ -1298,6 +1343,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     const processBlob = async (blob) => {
                         await saveImage(sponsor.id, blob);
                         sponsor.hasCustomImage = true;
+                        sponsor.lastModified = Date.now();
+                        delete sponsor.imageUrl;
                         await saveState();
                         showToast('Bild erfolgreich aktualisiert!');
                     };
@@ -1468,6 +1515,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 } catch (e) {
                     console.error(e);
                 }
+            } else if (sponsor && sponsor.imageUrl) {
+                imageUrl = sponsor.imageUrl;
             }
             if (imageUrl) {
                 imagePreviewContainer.innerHTML = `<img src="${imageUrl}" class="h-20 w-20 object-cover rounded-full">`;
@@ -1532,6 +1581,20 @@ document.addEventListener('DOMContentLoaded', () => {
         showToast('Eintrag erfolgreich gespeichert!');
     }
 
+    async function handleClearEggLogs() {
+        const confirmed = await showDestructiveConfirmation(
+            'Bist du sicher, dass du das gesamte Eier-Logbuch leeren möchtest? Alle Einträge werden dauerhaft gelöscht.', 
+            'LÖSCHEN'
+        );
+        if (confirmed) {
+            state.eggLogs = [];
+            await saveState();
+            showToast('Eier-Logbuch wurde geleert.');
+            renderDashboard();
+            renderEggModal(); // Rerender to show empty state
+        }
+    }
+    
     async function handleAnimalFormSubmit(e) {
         e.preventDefault();
         const form = e.target;
@@ -1560,6 +1623,7 @@ document.addEventListener('DOMContentLoaded', () => {
         animal.sponsorId = formData.get('sponsorId') ? parseInt(formData.get('sponsorId')) : null;
         animal.ringColor = ringColor;
         animal.ringCount = ringCount;
+        animal.lastModified = Date.now();
         if (!id && !newImageBlob) {
             animal.hasCustomImage = false;
             animal.imageUrl = `https://placehold.co/300x200/cccccc/4A2E2E?text=${animal.name}`;
@@ -1614,6 +1678,7 @@ document.addEventListener('DOMContentLoaded', () => {
         
         sponsor.name = name;
         sponsor.level = formData.get('level');
+        sponsor.lastModified = Date.now();
         if (!id && !newImageBlob) {
             sponsor.hasCustomImage = false;
         }
@@ -1627,6 +1692,7 @@ document.addEventListener('DOMContentLoaded', () => {
             try {
                 await saveImage(sponsor.id, newImageBlob);
                 sponsor.hasCustomImage = true;
+                delete sponsor.imageUrl;
             } catch (error) {
                 console.error("Image save error:", error);
                 showAlert("Patendaten gespeichert, aber das Bild konnte nicht gesichert werden.");
@@ -1690,7 +1756,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     
     async function deleteAllData() {
-        const confirmed = await showConfirmation('ACHTUNG: Bist du absolut sicher? Alle Tier-, Paten- und Eierdaten werden unwiderruflich gelöscht. Diese Aktion kann nicht rückgängig gemacht werden.');
+        const confirmed = await showDestructiveConfirmation('ACHTUNG: Bist du absolut sicher? Alle Tier-, Paten- und Eierdaten werden unwiderruflich gelöscht. Diese Aktion kann nicht rückgängig gemacht werden.', 'LÖSCHEN');
         if (confirmed) {
             const animalImageIds = state.animals.filter(a => a.hasCustomImage).map(a => a.id);
             const sponsorImageIds = state.sponsors.filter(s => s.hasCustomImage).map(s => s.id);
@@ -1713,19 +1779,24 @@ document.addEventListener('DOMContentLoaded', () => {
             showToast("Alle Daten wurden gelöscht.");
         }
     }
+    
+    function getExtensionFromMimeType(mimeType) {
+        if (!mimeType) return '.png';
+        const typeMap = {
+            'image/jpeg': '.jpg',
+            'image/png': '.png',
+            'image/gif': '.gif',
+            'image/svg+xml': '.svg',
+            'image/webp': '.webp',
+        };
+        return typeMap[mimeType.toLowerCase()] || `.${mimeType.split('/')[1] || 'bin'}`;
+    }
 
-    function showSimpleExportModal(blob, fileName, file) {
+    function showSimpleExportModal(blob, fileName) {
         const existingModal = document.getElementById('simple-export-modal');
         if (existingModal) existingModal.remove();
 
-        const canShare = navigator.share && navigator.canShare({ files: [file] });
         const downloadUrl = URL.createObjectURL(blob);
-
-        const shareButtonHtml = canShare ? `
-            <button id="share-btn-simple" class="w-full text-center block bg-green-500 text-white font-bold py-3 px-4 rounded-lg hover:bg-green-600 no-underline mb-4">
-                Teilen...
-            </button>
-        ` : '';
 
         const modalWrapper = document.createElement('div');
         modalWrapper.id = 'simple-export-modal';
@@ -1734,12 +1805,11 @@ document.addEventListener('DOMContentLoaded', () => {
         modalWrapper.innerHTML = `
             <div class="modal-content w-full max-w-sm p-6 text-center">
                 <h2 class="text-2xl font-bold mb-4">Export bereit</h2>
-                <p class="mb-6">Ihre Daten-Datei wurde erfolgreich erstellt. Wählen Sie eine Aktion aus.</p>
-                ${shareButtonHtml}
+                <p class="mb-6">Ihre Daten-Datei wurde erfolgreich erstellt.</p>
                 <a href="${downloadUrl}" download="${fileName}" id="download-link-simple" class="w-full text-center block bg-blue-500 text-white font-bold py-3 px-4 rounded-lg hover:bg-blue-600 no-underline">
                     Datei jetzt herunterladen
                 </a>
-                <button id="close-export-modal-btn" class="mt-4 text-sm text-gray-500 dark:text-gray-400 hover:underline">Abbrechen</button>
+                <button id="close-export-modal-btn" class="mt-4 text-sm text-gray-500 dark:text-gray-400 hover:underline">Schließen</button>
             </div>
         `;
 
@@ -1754,26 +1824,6 @@ document.addEventListener('DOMContentLoaded', () => {
             showToast('Download gestartet!');
             setTimeout(closeModal, 500);
         });
-
-        if (canShare) {
-            modalWrapper.querySelector('#share-btn-simple').addEventListener('click', async () => {
-                try {
-                    await navigator.share({
-                        files: [file],
-                        title: 'Chicken-App Daten',
-                        text: 'Hier sind deine exportierten Daten von der Chicken-App.',
-                    });
-                    showToast('Daten erfolgreich geteilt!');
-                } catch (error) {
-                    if (error.name !== 'AbortError') {
-                        console.error('Sharing failed:', error);
-                        showAlert("Teilen fehlgeschlagen.");
-                    }
-                } finally {
-                    closeModal();
-                }
-            });
-        }
         
         modalWrapper.querySelector('#close-export-modal-btn').addEventListener('click', closeModal);
     }
@@ -1783,7 +1833,6 @@ document.addEventListener('DOMContentLoaded', () => {
             showToast("Daten werden für den Export vorbereitet...");
             const zip = new JSZip();
 
-            // Add all non-image data to a single JSON file
             zip.file("data.json", JSON.stringify(state));
 
             const imageFolder = zip.folder("images");
@@ -1793,8 +1842,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 try {
                     const blob = await getImage(item.id);
                     if (blob) {
-                        // Use a consistent extension, .png is good as the cropper defaults to it.
-                        imageFolder.file(`${item.id}.png`, blob);
+                        const extension = getExtensionFromMimeType(blob.type);
+                        imageFolder.file(`${item.id}${extension}`, blob);
                     }
                 } catch (e) {
                     console.error(`Error fetching image for item ${item.id}`, e);
@@ -1805,9 +1854,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const zipBlob = await zip.generateAsync({ type: "blob" });
             const fileName = `Chicken-App-Backup-${new Date().toISOString().split('T')[0]}.zip`;
-            const file = new File([zipBlob], fileName, { type: zipBlob.type });
-
-            showSimpleExportModal(zipBlob, fileName, file);
+            
+            showSimpleExportModal(zipBlob, fileName);
             
         } catch (error) {
             console.error("ZIP Export Error:", error);
@@ -1819,44 +1867,63 @@ document.addEventListener('DOMContentLoaded', () => {
         const file = event.target.files[0];
         if (!file) return;
 
-        if (!await showConfirmation("Möchtest du wirklich die Daten aus dieser Datei importieren? Alle aktuellen Daten in der App werden überschrieben.")) {
-            event.target.value = ''; // Reset file input
+        const confirmed = await showConfirmation("ACHTUNG: Alle aktuellen Daten (Tiere, Paten, Eier, Bilder) werden gelöscht und durch die Daten aus der Backup-Datei ersetzt. Möchtest du fortfahren?");
+        if (!confirmed) {
+            event.target.value = '';
             return;
         }
-        
+
         showToast("Import wird gestartet...");
 
         try {
+            // 1. Clear all existing data
+            const animalImageIds = state.animals.filter(a => a.hasCustomImage).map(a => a.id);
+            const sponsorImageIds = state.sponsors.filter(s => s.hasCustomImage).map(s => s.id);
+            const allImageIds = [...animalImageIds, ...sponsorImageIds];
+
+            if (allImageIds.length > 0) {
+                await Promise.all(allImageIds.map(id => deleteImage(id).catch(e => console.error(`Failed to delete image ${id}`, e))));
+            }
+            
+            // Reset state in memory
+            state.animals = [];
+            state.sponsors = [];
+            state.eggLogs = [];
+
+            // 2. Load and process new data from ZIP
             const zip = await JSZip.loadAsync(file);
             const dataFile = zip.file("data.json");
+            if (!dataFile) throw new Error("Die ZIP-Datei enthält keine 'data.json'.");
 
-            if (!dataFile) {
-                throw new Error("Die ZIP-Datei enthält keine 'data.json'.");
+            const importedState = JSON.parse(await dataFile.async("string"));
+            
+            // 3. Overwrite current state with imported state
+            state.animals = importedState.animals || [];
+            state.sponsors = importedState.sponsors || [];
+            state.eggLogs = importedState.eggLogs || [];
+            
+            // 4. Save new images from the ZIP to IndexedDB
+            const imageFolder = zip.folder("images");
+            if (imageFolder) {
+                const imagePromises = [];
+                imageFolder.forEach((relativePath, imageFile) => {
+                    const id = parseInt(relativePath.split('.')[0], 10);
+                    if (!isNaN(id)) {
+                        imagePromises.push(
+                            imageFile.async("blob").then(blob => {
+                                if (blob) saveImage(id, blob);
+                            })
+                        );
+                    }
+                });
+                await Promise.all(imagePromises);
             }
 
-            const newState = JSON.parse(await dataFile.async("string"));
-            
-            // Clear all old images before importing new ones
-            const allOldItems = [...state.animals, ...state.sponsors].filter(i => i.hasCustomImage);
-            await Promise.all(allOldItems.map(item => deleteImage(item.id).catch(e => console.error(`Failed to delete old image ${item.id}`, e))));
-
-            const imageFolder = zip.folder("images");
-            const importPromises = [];
-            imageFolder.forEach((relativePath, imageFile) => {
-                const id = parseInt(relativePath.split('.')[0]);
-                if (!isNaN(id)) {
-                    const promise = imageFile.async("blob").then(blob => saveImage(id, blob));
-                    importPromises.push(promise);
-                }
-            });
-
-            await Promise.all(importPromises);
-
-            state = newState;
+            // 5. Save the new state, re-render, and give feedback
             await saveState(false);
             renderDashboard();
-            history.back();
-            showToast("Daten erfolgreich importiert!");
+            history.back(); // Close file modal
+            showToast("Daten erfolgreich wiederhergestellt!");
 
         } catch (err) {
             console.error("ZIP Import Error:", err);
@@ -1930,44 +1997,41 @@ document.addEventListener('DOMContentLoaded', () => {
         const sampleChickenImg = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgMTAwIj48Y2lyY2xlIGN4PSI1MCIgY3k9IjYwIiByPSIzMCIgZmlsbD0iI0EwNTIyRCIvPjxjaXJjbGUgY3g9Ijc1IiBjeT0iNDAiIHI9IjE1IiBmaWxsPSIjQTA1MjJEIi8+PHBhdGggZD0iTTcwIDIwIFEgNzUgMTAgODAgMjAgVCA5MCAyMCIgZmlsbD0iI0ZGRDUwMCIvPjxwb2x5Z29uIHBvaW50cz0iODUsNDUgOTUsNTAgODUsNTUiIGZpbGw9IiNGRkE1MCIvPjxjaXJjbGUgY3g9IjgwIiBjeT0iMzgiIHI9IjMiIGZpbGw9IiMwMDAiLz48L3N2Zz4=';
         const sampleDuckImg = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgMTAwIj48Y2lyY2xlIGN4PSI1MCIgY3k9IjYwIiByPSIzMCIgZmlsbD0iI0ZGRDcwMCIvPjxjaXJjbGUgY3g9Ijc1IiBjeT0iNDAiIHI9IjE1IiBmaWxsPSIjRkZENzAwIi8+PHBvbHlnb24gcG9pbnRzPSI4NSw0NSAxMDAsNDggMTAwLDUyIDg1LDU1IiBmaWxsPSIjRkZBNTAwIi8+PGNpcmNsZSBjeD0iODAiIGN5PSIzOCIgcj0iMyIgZmlsbD0iIzAwMCIvPjwvc3ZnPg==';
         
-        const imageSavePromises = [];
         const sponsors = [];
         for (let i = 1; i <= 20; i++) {
-            const sponsor = {
-                id: Date.now() + i, createdAt: Date.now() + i,
+            const now = Date.now();
+            sponsors.push({
+                id: now + i, createdAt: now + i, lastModified: now + i,
                 name: `Pate Nr. ${i}`, level: ["Silber", "Gold", "King Edition"][i % 3],
-                hasCustomImage: true
-            };
-            imageSavePromises.push(
-                base64ToBlob(sampleSponsorImg).then(blob => saveImage(sponsor.id, blob))
-            );
-            sponsors.push(sponsor);
+                hasCustomImage: false,
+                imageUrl: sampleSponsorImg
+            });
         }
         state.sponsors = sponsors;
 
         const animals = [];
         let animalIdCounter = 100;
         for (let i = 1; i <= 30; i++) {
-            const animal = {
-                id: Date.now() + animalIdCounter++, createdAt: Date.now() + animalIdCounter,
+            const now = Date.now();
+            animals.push({
+                id: now + animalIdCounter, createdAt: now + animalIdCounter, lastModified: now + animalIdCounter,
                 name: `Huhn ${i}`, species: "chicken", sponsorId: null,
-                ringColor: "", ringCount: 0, hasCustomImage: true
-            };
-            imageSavePromises.push(
-                base64ToBlob(sampleChickenImg).then(blob => saveImage(animal.id, blob))
-            );
-            animals.push(animal);
+                ringColor: "", ringCount: 0,
+                hasCustomImage: false,
+                imageUrl: sampleChickenImg
+            });
+            animalIdCounter++;
         }
         for (let i = 1; i <= 7; i++) {
-            const animal = {
-                id: Date.now() + animalIdCounter++, createdAt: Date.now() + animalIdCounter,
+            const now = Date.now();
+            animals.push({
+                id: now + animalIdCounter, createdAt: now + animalIdCounter, lastModified: now + animalIdCounter,
                 name: `Ente ${i}`, species: "duck", sponsorId: null,
-                ringColor: "", ringCount: 0, hasCustomImage: true
-            };
-            imageSavePromises.push(
-                base64ToBlob(sampleDuckImg).then(blob => saveImage(animal.id, blob))
-            );
-            animals.push(animal);
+                ringColor: "", ringCount: 0,
+                hasCustomImage: false,
+                imageUrl: sampleDuckImg
+            });
+            animalIdCounter++;
         }
         state.animals = animals;
         
@@ -1995,7 +2059,6 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         }
         
-        await Promise.all(imageSavePromises);
         await saveState(false);
         console.log("Sample data with images added and saved.");
     }
