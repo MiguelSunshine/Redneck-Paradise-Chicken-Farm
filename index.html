@@ -2083,23 +2083,49 @@ document.addEventListener('DOMContentLoaded', () => {
     async function addSampleData() {
         console.log("Adding sample data...");
         const sponsors = [];
+        const usedSponsorNames = new Set();
         for (let i = 1; i <= 20; i++) {
+            let name;
+            let baseName = getRandomFunnyName('sponsor');
+            name = baseName;
+            let counter = 2;
+            while (usedSponsorNames.has(name)) {
+                name = `${baseName} ${counter++}`;
+            }
+            usedSponsorNames.add(name);
+
             const now = Date.now();
             sponsors.push({
                 id: now + i, createdAt: now + i, lastModified: now + i,
-                name: getRandomFunnyName('sponsor'), level: ["Silber", "Gold", "King Edition"][i % 3],
+                name: name,
+                level: ["Silber", "Gold", "King Edition"][i % 3],
                 images: [],
             });
         }
         state.sponsors = sponsors;
 
         const animals = [];
+        const usedAnimalNames = new Set();
         let animalIdCounter = 100;
+
+        const generateUniqueAnimalName = () => {
+            let name;
+            let baseName = getRandomFunnyName('animal');
+            name = baseName;
+            let counter = 2;
+            while (usedAnimalNames.has(name)) {
+                name = `${baseName} ${counter++}`;
+            }
+            usedAnimalNames.add(name);
+            return name;
+        };
+
         for (let i = 1; i <= 30; i++) {
             const now = Date.now();
             animals.push({
                 id: now + animalIdCounter, createdAt: now + animalIdCounter, lastModified: now + animalIdCounter,
-                name: getRandomFunnyName('animal'), species: "chicken", sponsorId: null,
+                name: generateUniqueAnimalName(),
+                species: "chicken", sponsorId: null,
                 ringColor: "", ringCount: 0,
                 hasCustomImage: false,
             });
@@ -2109,7 +2135,8 @@ document.addEventListener('DOMContentLoaded', () => {
             const now = Date.now();
             animals.push({
                 id: now + animalIdCounter, createdAt: now + animalIdCounter, lastModified: now + animalIdCounter,
-                name: getRandomFunnyName('animal'), species: "duck", sponsorId: null,
+                name: generateUniqueAnimalName(),
+                species: "duck", sponsorId: null,
                 ringColor: "", ringCount: 0,
                 hasCustomImage: false,
             });
