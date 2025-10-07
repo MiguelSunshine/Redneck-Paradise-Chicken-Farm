@@ -777,9 +777,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
         return `
             <div class="card overflow-hidden animal-list-card" data-id="${animal.id}" style="border-color:${borderColor};">
-                <img src="${imageUrl}" alt="${animal.name}" class="w-full h-40 object-cover rounded-t-lg pointer-events-none">
-                <div class="p-4 pointer-events-none text-center">
-                    <h4 class="font-bold text-xl">${animal.name} (${animal.species==='chicken'?'Huhn':'Ente'})</h4>
+                <div class="p-4 pointer-events-none text-center flex flex-col items-center">
+                    <img src="${imageUrl}" alt="${animal.name}" class="w-32 h-32 object-cover rounded-full border-4 pointer-events-none" style="border-color:${borderColor};">
+                    <h4 class="font-bold text-xl mt-3">${animal.name} (${animal.species==='chicken'?'Huhn':'Ente'})</h4>
                     ${renderRingIndicator(animal)}
                     <p class="text-sm text-gray-600 dark:text-gray-400 flex items-center justify-center mt-1">
                         <span class="sponsor-color-dot" style="background-color:${borderColor};"></span>${sponsorName}
@@ -791,18 +791,18 @@ document.addEventListener('DOMContentLoaded', () => {
     async function createSponsorListItemHTML(sponsor) {
         const primaryImageUrl = await getSponsorPrimaryImage(sponsor);
         const fallbackImageUrl = generateSponsorPlaceholder(sponsor.level);
-
-        const imageHtml = `<img src="${primaryImageUrl || fallbackImageUrl}" alt="${sponsor.name}" class="w-full h-40 object-cover rounded-t-lg pointer-events-none">`;
+        const finalImageUrl = primaryImageUrl || fallbackImageUrl;
+        const borderColor = sponsorshipColors[sponsor.level] || '#BDC3C7';
 
         const sponsoredAnimalsCount = state.animals.filter(a => a.sponsorId === sponsor.id).length;
     
         return `
-            <div class="card overflow-hidden sponsor-list-card" data-id="${sponsor.id}" style="border-color: ${sponsorshipColors[sponsor.level]};">
-                ${imageHtml}
-                <div class="p-4 text-center pointer-events-none">
-                    <h4 class="font-bold text-xl">${sponsor.name}</h4>
+            <div class="card overflow-hidden sponsor-list-card" data-id="${sponsor.id}" style="border-color: ${borderColor};">
+                <div class="p-4 text-center pointer-events-none flex flex-col items-center">
+                    <img src="${finalImageUrl}" alt="${sponsor.name}" class="w-32 h-32 object-cover rounded-full border-4 pointer-events-none" style="border-color:${borderColor};">
+                    <h4 class="font-bold text-xl mt-3">${sponsor.name}</h4>
                     <p class="text-sm text-gray-600 dark:text-gray-400 flex items-center justify-center mt-1">
-                        <span class="sponsor-color-dot" style="background-color:${sponsorshipColors[sponsor.level]};"></span>${sponsor.level}
+                        <span class="sponsor-color-dot" style="background-color:${borderColor};"></span>${sponsor.level}
                     </p>
                     <p class="text-sm text-gray-600 dark:text-gray-400 mt-1">
                         Tiere: ${sponsoredAnimalsCount}
@@ -1053,77 +1053,128 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    async function renderAnimalModal(options = {}) {
-        const { filter = '', sponsorFilter = 'all', sortBy = 'createdAt_desc' } = options;
-        
+    async function renderAnimalModal(initialOptions = {}) {
+        const modalState = {
+            filter: initialOptions.filter || '',
+            sponsorFilter: initialOptions.sponsorFilter === 'none' ? 'unsponsored' : initialOptions.sponsorFilter || 'all',
+            sortBy: initialOptions.sortBy || 'createdAt_desc',
+            speciesFilter: initialOptions.speciesFilter || 'all',
+            specificSponsorFilter: initialOptions.specificSponsorFilter || 'all'
+        };
+
+        const specificSponsorOptions = state.sponsors
+            .sort((a, b) => a.name.localeCompare(b.name))
+            .map(s => `<option value="${s.id}">${s.name}</option>`).join('');
+
         const contentShell = `
             <h2 class="text-3xl font-bold mb-4">Tierübersicht</h2>
-            <div class="mb-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2">
-                <input type="text" id="animal-search" class="w-full p-2 border rounded-lg sm:col-span-2 lg:col-span-1" placeholder="Suche..." value="${filter}">
-                <select id="animal-sponsor-filter" class="w-full p-2 border rounded-lg">
-                    <option value="all" ${sponsorFilter === 'all' ? 'selected' : ''}>Alle Tiere</option>
-                    <option value="sponsored" ${sponsorFilter === 'sponsored' ? 'selected' : ''}>Mit Paten</option>
-                    <option value="unsponsored" ${sponsorFilter === 'unsponsored' || sponsorFilter === 'none' ? 'selected' : ''}>Ohne Paten</option>
-                </select>
-                <select id="animal-sort" class="w-full p-2 border rounded-lg">
-                    <option value="createdAt_desc" ${sortBy === 'createdAt_desc' ? 'selected' : ''}>Neueste zuerst</option>
-                    <option value="createdAt_asc" ${sortBy === 'createdAt_asc' ? 'selected' : ''}>Älteste zuerst</option>
-                    <option value="name_asc" ${sortBy === 'name_asc' ? 'selected' : ''}>Name (A-Z)</option>
-                </select>
-                <button id="add-new-animal-btn" class="bg-green-500 text-white font-bold py-2 px-4 rounded-full hover:bg-green-600 whitespace-nowrap">Neues Tier +</button>
+            <div class="p-3 mb-4 border-2 border-dashed rounded-lg bg-white/50 dark:bg-gray-800/50 space-y-3">
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                    <input type="text" id="animal-search" class="w-full p-2 border rounded-lg" placeholder="Namen, Art, Pate suchen...">
+                    <select id="animal-sponsor-filter" class="w-full p-2 border rounded-lg">
+                        <option value="all">Alle (Patenstatus)</option>
+                        <option value="sponsored">Mit Paten</option>
+                        <option value="unsponsored">Ohne Paten</option>
+                    </select>
+                    <select id="animal-sort" class="w-full p-2 border rounded-lg">
+                        <option value="createdAt_desc">Neueste zuerst</option>
+                        <option value="createdAt_asc">Älteste zuerst</option>
+                        <option value="name_asc">Name (A-Z)</option>
+                    </select>
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <select id="animal-species-filter" class="w-full p-2 border rounded-lg">
+                        <option value="all">Alle Tierarten</option>
+                        <option value="chicken">🐔 Nur Hühner</option>
+                        <option value="duck">🦆 Nur Enten</option>
+                    </select>
+                    <select id="animal-specific-sponsor-filter" class="w-full p-2 border rounded-lg">
+                        <option value="all">Alle Paten</option>
+                        ${specificSponsorOptions}
+                    </select>
+                </div>
+                <div class="flex flex-wrap items-center gap-2 pt-2">
+                    <button id="add-new-animal-btn" class="bg-green-500 text-white font-bold py-2 px-4 rounded-full hover:bg-green-600 whitespace-nowrap text-sm">Neues Tier +</button>
+                    <button id="reset-animal-filters-btn" class="bg-gray-500 text-white font-bold py-2 px-4 rounded-full hover:bg-gray-600 whitespace-nowrap text-sm">Filter zurücksetzen</button>
+                </div>
             </div>
-            <div id="animal-list-container" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4"><p>Lade Tiere...</p></div>
-        `;
-        
-        openModal(contentShell, async m => {
-            const searchInput = m.querySelector('#animal-search');
-            const sortSelect = m.querySelector('#animal-sort');
-            const sponsorFilterSelect = m.querySelector('#animal-sponsor-filter');
-            const listContainer = m.querySelector('#animal-list-container');
+            <div id="animal-list-container" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4"><p>Lade Tiere...</p></div>`;
+
+        openModal(contentShell, modal => {
+            const searchInput = modal.querySelector('#animal-search');
+            const sponsorFilterSelect = modal.querySelector('#animal-sponsor-filter');
+            const sortSelect = modal.querySelector('#animal-sort');
+            const speciesFilterSelect = modal.querySelector('#animal-species-filter');
+            const specificSponsorSelect = modal.querySelector('#animal-specific-sponsor-filter');
+            const listContainer = modal.querySelector('#animal-list-container');
+            const resetBtn = modal.querySelector('#reset-animal-filters-btn');
+            const addBtn = modal.querySelector('#add-new-animal-btn');
             
-            const applyFilters = () => {
-                renderAnimalModal({
-                    filter: searchInput.value,
-                    sortBy: sortSelect.value,
-                    sponsorFilter: sponsorFilterSelect.value
+            const updateAnimalList = async () => {
+                const sponsorsMap = new Map(state.sponsors.map(s => [s.id, s]));
+                let filteredAnimals = state.animals;
+
+                const searchTerm = searchInput.value.toLowerCase();
+                const sponsorFilter = sponsorFilterSelect.value;
+                const speciesFilter = speciesFilterSelect.value;
+                const specificSponsorId = specificSponsorSelect.value;
+                const sortBy = sortSelect.value;
+
+                if (sponsorFilter === 'sponsored') filteredAnimals = filteredAnimals.filter(a => a.sponsorId);
+                else if (sponsorFilter === 'unsponsored') filteredAnimals = filteredAnimals.filter(a => !a.sponsorId);
+
+                if (speciesFilter !== 'all') filteredAnimals = filteredAnimals.filter(a => a.species === speciesFilter);
+                
+                if (specificSponsorId !== 'all') filteredAnimals = filteredAnimals.filter(a => a.sponsorId === parseInt(specificSponsorId));
+                
+                if (searchTerm) {
+                    filteredAnimals = filteredAnimals.filter(a => {
+                        const sponsor = a.sponsorId ? sponsorsMap.get(a.sponsorId) : null;
+                        return a.name.toLowerCase().includes(searchTerm) ||
+                               a.species.toLowerCase().includes(searchTerm) ||
+                               (sponsor && sponsor.name.toLowerCase().includes(searchTerm));
+                    });
+                }
+
+                filteredAnimals.sort((a, b) => {
+                    switch (sortBy) {
+                        case 'name_asc': return a.name.localeCompare(b.name);
+                        case 'createdAt_desc': return b.createdAt - a.createdAt;
+                        case 'createdAt_asc': return a.createdAt - b.createdAt;
+                        default: return 0;
+                    }
                 });
+
+                const animalCardsPromises = filteredAnimals.map(animal => createAnimalCardHTML(animal, sponsorsMap));
+                const animalCardsHtml = (await Promise.all(animalCardsPromises)).join('');
+
+                listContainer.innerHTML = animalCardsHtml || '<p class="col-span-full text-center text-gray-500 dark:text-gray-400">Keine Tiere gefunden, die den Kriterien entsprechen.</p>';
+                listContainer.querySelectorAll('.animal-list-card').forEach(c => c.addEventListener('click', (e) => renderAnimalDetailModal(parseInt(e.currentTarget.dataset.id))));
             };
             
-            searchInput.addEventListener('input', applyFilters);
-            sortSelect.addEventListener('change', applyFilters);
-            sponsorFilterSelect.addEventListener('change', applyFilters);
-            m.querySelector('#add-new-animal-btn').addEventListener('click', () => renderEditAnimalModal());
-            
-            const sponsorsMap = new Map(state.sponsors.map(s => [s.id, s]));
-            let filteredAnimals = state.animals;
+            const resetFilters = () => {
+                searchInput.value = '';
+                sponsorFilterSelect.value = 'all';
+                sortSelect.value = 'createdAt_desc';
+                speciesFilterSelect.value = 'all';
+                specificSponsorSelect.value = 'all';
+                updateAnimalList();
+            };
 
-            if (sponsorFilter === 'sponsored') {
-                filteredAnimals = filteredAnimals.filter(a => a.sponsorId);
-            } else if (sponsorFilter === 'unsponsored' || sponsorFilter === 'none') {
-                filteredAnimals = filteredAnimals.filter(a => !a.sponsorId);
-            }
+            searchInput.value = modalState.filter;
+            sponsorFilterSelect.value = modalState.sponsorFilter;
+            sortSelect.value = modalState.sortBy;
+            speciesFilterSelect.value = modalState.speciesFilter;
+            specificSponsorSelect.value = modalState.specificSponsorFilter;
 
-            if (filter) {
-                const s = filter.toLowerCase();
-                filteredAnimals = filteredAnimals.filter(a => {
-                    const sp = a.sponsorId ? sponsorsMap.get(a.sponsorId) : null;
-                    return a.name.toLowerCase().includes(s) || a.species.toLowerCase().includes(s) || (sp && sp.name.toLowerCase().includes(s));
-                });
-            }
-
-            filteredAnimals.sort((a, b) => {
-                switch (sortBy) {
-                    case 'name_asc': return a.name.localeCompare(b.name);
-                    case 'createdAt_desc': return b.createdAt - a.createdAt;
-                    case 'createdAt_asc': return a.createdAt - b.createdAt;
-                    default: return 0;
-                }
+            [searchInput, sponsorFilterSelect, sortSelect, speciesFilterSelect, specificSponsorSelect].forEach(el => {
+                el.addEventListener('input', updateAnimalList);
+                el.addEventListener('change', updateAnimalList);
             });
-            const animalCardsPromises = filteredAnimals.map(animal => createAnimalCardHTML(animal, sponsorsMap));
-            const animalCardsHtml = (await Promise.all(animalCardsPromises)).join('');
-
-            listContainer.innerHTML = animalCardsHtml || '<p>Keine Tiere gefunden.</p>';
-            m.querySelectorAll('.animal-list-card').forEach(c => c.addEventListener('click', (e) => renderAnimalDetailModal(parseInt(e.currentTarget.dataset.id))));
+            resetBtn.addEventListener('click', resetFilters);
+            addBtn.addEventListener('click', () => renderEditAnimalModal());
+            
+            updateAnimalList();
         }, { stack: false });
     }
     
@@ -1234,72 +1285,135 @@ document.addEventListener('DOMContentLoaded', () => {
         }, { stack: false });
     }
 
-    async function renderSponsorModal(options = {}) {
-        const { filter = '', sortBy = 'name_asc', levelFilter = 'alle' } = options;
-        
+    async function renderSponsorModal(initialOptions = {}) {
+        const modalState = {
+            filter: initialOptions.filter || '',
+            sortBy: initialOptions.sortBy || 'name_asc',
+            levelFilter: initialOptions.levelFilter || 'alle',
+            sponsoredCountFilter: initialOptions.sponsoredCountFilter || 'all',
+        };
+
         const contentShell = `
             <h2 class="text-3xl font-bold mb-4">Patenübersicht</h2>
-            <div class="mb-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2">
-                <input type="text" id="sponsor-search" class="w-full p-2 border rounded-lg sm:col-span-2 lg:col-span-1" placeholder="Suche..." value="${filter}">
-                <select id="sponsor-level-filter" class="w-full p-2 border rounded-lg">
-                    <option value="alle" ${levelFilter === 'alle' ? 'selected' : ''}>Alle Partnerschaften</option>
-                    <option value="Silber" ${levelFilter === 'Silber' ? 'selected' : ''}>Silber</option>
-                    <option value="Gold" ${levelFilter === 'Gold' ? 'selected' : ''}>Gold</option>
-                    <option value="King Edition" ${levelFilter === 'King Edition' ? 'selected' : ''}>King Edition</option>
-                </select>
-                <select id="sponsor-sort" class="w-full p-2 border rounded-lg">
-                    <option value="name_asc" ${sortBy === 'name_asc' ? 'selected' : ''}>Name (A-Z)</option>
-                    <option value="level" ${sortBy === 'level' ? 'selected' : ''}>Patenschafts-Stufe</option>
-                    <option value="animal_count" ${sortBy === 'animal_count' ? 'selected' : ''}>Anzahl Patentiere</option>
-                </select>
-                <button id="add-new-sponsor-btn" class="bg-blue-500 text-white font-bold py-2 px-4 rounded-full hover:bg-blue-600 whitespace-nowrap">Neuer Pate +</button>
+            <div class="p-3 mb-4 border-2 border-dashed rounded-lg bg-white/50 dark:bg-gray-800/50 space-y-3">
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-3">
+                    <input type="text" id="sponsor-search" class="w-full p-2 border rounded-lg sm:col-span-2 lg:col-span-1" placeholder="Pate oder Patentier suchen...">
+                     <select id="sponsor-sort" class="w-full p-2 border rounded-lg">
+                        <option value="name_asc">Name (A-Z)</option>
+                        <option value="level">Patenschafts-Stufe</option>
+                        <option value="animal_count">Anzahl Patentiere</option>
+                    </select>
+                </div>
+                 <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-3">
+                    <select id="sponsor-level-filter" class="w-full p-2 border rounded-lg">
+                        <option value="alle">Alle Partnerschaften</option>
+                        <option value="Silber">Silber</option>
+                        <option value="Gold">Gold</option>
+                        <option value="King Edition">King Edition</option>
+                    </select>
+                    <select id="sponsored-count-filter" class="w-full p-2 border rounded-lg">
+                        <option value="all">Alle (Tieranzahl)</option>
+                        <option value="none">Ohne Tiere</option>
+                        <option value="1-5">1-5 Tiere</option>
+                        <option value="6+">6+ Tiere</option>
+                    </select>
+                </div>
+                <div class="flex flex-wrap items-center gap-2 pt-2">
+                    <button id="add-new-sponsor-btn" class="bg-blue-500 text-white font-bold py-2 px-4 rounded-full hover:bg-blue-600 whitespace-nowrap text-sm">Neuer Pate +</button>
+                    <button id="reset-sponsor-filters-btn" class="bg-gray-500 text-white font-bold py-2 px-4 rounded-full hover:bg-gray-600 whitespace-nowrap text-sm">Filter zurücksetzen</button>
+                </div>
             </div>
             <div id="sponsor-list-container" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4"><p>Lade Paten...</p></div>`;
-    
-        openModal(contentShell, async modal => {
+
+        openModal(contentShell, modal => {
             const searchInput = modal.querySelector('#sponsor-search');
             const sortSelect = modal.querySelector('#sponsor-sort');
             const levelFilterSelect = modal.querySelector('#sponsor-level-filter');
+            const sponsoredCountFilterSelect = modal.querySelector('#sponsored-count-filter');
             const listContainer = modal.querySelector('#sponsor-list-container');
-            
-            const rerender = () => {
-                renderSponsorModal({ filter: searchInput.value, sortBy: sortSelect.value, levelFilter: levelFilterSelect.value });
-            };
-            
-            searchInput.addEventListener('input', rerender);
-            sortSelect.addEventListener('change', rerender);
-            levelFilterSelect.addEventListener('change', rerender);
-            modal.querySelector('#add-new-sponsor-btn').addEventListener('click', () => renderEditSponsorModal());
+            const addBtn = modal.querySelector('#add-new-sponsor-btn');
+            const resetBtn = modal.querySelector('#reset-sponsor-filters-btn');
 
-            let filteredSponsors = state.sponsors;
-    
-            if (filter) {
-                const searchTerm = filter.toLowerCase();
-                filteredSponsors = filteredSponsors.filter(sp => sp.name.toLowerCase().includes(searchTerm));
-            }
-        
-            if (levelFilter !== 'alle') {
-                filteredSponsors = filteredSponsors.filter(sp => sp.level === levelFilter);
-            }
-        
-            const levelOrder = { "King Edition": 1, "Gold": 2, "Silber": 3 };
-            filteredSponsors.sort((a, b) => {
-                switch (sortBy) {
-                    case 'name_asc': return a.name.localeCompare(b.name);
-                    case 'level': return levelOrder[a.level] - levelOrder[b.level];
-                    case 'animal_count':
-                        const countA = state.animals.filter(an => an.sponsorId === a.id).length;
-                        const countB = state.animals.filter(an => an.sponsorId === b.id).length;
-                        return countB - countA;
-                    default: return 0;
+            const sponsorAnimalCounts = new Map();
+            state.animals.forEach(a => {
+                if (a.sponsorId) {
+                    sponsorAnimalCounts.set(a.sponsorId, (sponsorAnimalCounts.get(a.sponsorId) || 0) + 1);
                 }
             });
-        
-            const sponsorListPromises = filteredSponsors.map(createSponsorListItemHTML);
-            const sponsorListHtml = (await Promise.all(sponsorListPromises)).join('');
-        
-            listContainer.innerHTML = sponsorListHtml || '<p>Keine Paten gefunden.</p>';
-            modal.querySelectorAll('.sponsor-list-card').forEach(c => c.addEventListener('click', (e) => renderSponsorDetailModal(parseInt(e.currentTarget.dataset.id))));
+            const sponsorToAnimalsMap = new Map();
+            state.sponsors.forEach(s => sponsorToAnimalsMap.set(s.id, []));
+            state.animals.forEach(a => {
+                if(a.sponsorId && sponsorToAnimalsMap.has(a.sponsorId)){
+                    sponsorToAnimalsMap.get(a.sponsorId).push(a.name.toLowerCase());
+                }
+            });
+
+            const updateSponsorList = async () => {
+                let filteredSponsors = state.sponsors;
+                const searchTerm = searchInput.value.toLowerCase();
+                const levelFilter = levelFilterSelect.value;
+                const countFilter = sponsoredCountFilterSelect.value;
+                const sortBy = sortSelect.value;
+
+                if (levelFilter !== 'alle') {
+                    filteredSponsors = filteredSponsors.filter(sp => sp.level === levelFilter);
+                }
+
+                if (countFilter !== 'all') {
+                    filteredSponsors = filteredSponsors.filter(sp => {
+                        const count = sponsorAnimalCounts.get(sp.id) || 0;
+                        if (countFilter === 'none') return count === 0;
+                        if (countFilter === '1-5') return count >= 1 && count <= 5;
+                        if (countFilter === '6+') return count >= 6;
+                        return true;
+                    });
+                }
+                
+                if (searchTerm) {
+                    filteredSponsors = filteredSponsors.filter(sp => 
+                        sp.name.toLowerCase().includes(searchTerm) ||
+                        (sponsorToAnimalsMap.get(sp.id) || []).some(animalName => animalName.includes(searchTerm))
+                    );
+                }
+
+                const levelOrder = { "King Edition": 1, "Gold": 2, "Silber": 3 };
+                filteredSponsors.sort((a, b) => {
+                    switch (sortBy) {
+                        case 'name_asc': return a.name.localeCompare(b.name);
+                        case 'level': return levelOrder[a.level] - levelOrder[b.level];
+                        case 'animal_count': return (sponsorAnimalCounts.get(b.id) || 0) - (sponsorAnimalCounts.get(a.id) || 0);
+                        default: return 0;
+                    }
+                });
+
+                const sponsorListPromises = filteredSponsors.map(createSponsorListItemHTML);
+                const sponsorListHtml = (await Promise.all(sponsorListPromises)).join('');
+
+                listContainer.innerHTML = sponsorListHtml || '<p class="col-span-full text-center text-gray-500 dark:text-gray-400">Keine Paten gefunden, die den Kriterien entsprechen.</p>';
+                listContainer.querySelectorAll('.sponsor-list-card').forEach(c => c.addEventListener('click', (e) => renderSponsorDetailModal(parseInt(e.currentTarget.dataset.id))));
+            };
+
+            const resetFilters = () => {
+                searchInput.value = '';
+                sortSelect.value = 'name_asc';
+                levelFilterSelect.value = 'alle';
+                sponsoredCountFilterSelect.value = 'all';
+                updateSponsorList();
+            };
+            
+            searchInput.value = modalState.filter;
+            sortSelect.value = modalState.sortBy;
+            levelFilterSelect.value = modalState.levelFilter;
+            sponsoredCountFilterSelect.value = modalState.sponsoredCountFilter;
+
+            [searchInput, sortSelect, levelFilterSelect, sponsoredCountFilterSelect].forEach(el => {
+                el.addEventListener('input', updateSponsorList);
+                el.addEventListener('change', updateSponsorList);
+            });
+            addBtn.addEventListener('click', () => renderEditSponsorModal());
+            resetBtn.addEventListener('click', resetFilters);
+
+            updateSponsorList();
         }, { stack: false });
     }
 
