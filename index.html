@@ -282,7 +282,7 @@
     
     <div id="modal-container"></div>
     
-    <div id="toast" class="fixed bottom-5 right-5 bg-green-500 text-white py-2 px-4 rounded-lg shadow-lg opacity-0 transition-opacity duration-500">
+    <div id="toast" class="fixed bottom-5 right-5 text-white py-2 px-4 rounded-lg shadow-lg opacity-0 transition-opacity duration-500">
         Gespeichert!
     </div>
 
@@ -295,6 +295,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const imageUrlCache = new Map();
     let unsponsoredChartInstance = null;
     let autoSaveTimer = null;
+    let useInMemoryStore = false;
+    let inMemoryImages = new Map();
+    let inMemoryAppState = new Map();
+    let inMemoryAppSettings = new Map();
     
     let state = {
         animals: [],
@@ -359,6 +363,11 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function saveDataToDB(storeName, key, value) {
+        if (useInMemoryStore) {
+            const storeMap = { appState: inMemoryAppState, appSettings: inMemoryAppSettings }[storeName];
+            if (storeMap) storeMap.set(key, JSON.parse(JSON.stringify(value)));
+            return Promise.resolve();
+        }
         return new Promise((resolve, reject) => {
             if (!db) { return reject("DB not initialized"); }
             try {
@@ -372,6 +381,11 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function loadDataFromDB(storeName, key) {
+        if (useInMemoryStore) {
+            const storeMap = { appState: inMemoryAppState, appSettings: inMemoryAppSettings }[storeName];
+            const data = storeMap ? storeMap.get(key) : undefined;
+            return Promise.resolve(data ? JSON.parse(JSON.stringify(data)) : undefined);
+        }
         return new Promise((resolve, reject) => {
             if (!db) { return reject("DB not initialized"); }
             try {
@@ -385,6 +399,10 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function saveImage(id, blob) {
+        if (useInMemoryStore) {
+            inMemoryImages.set(id, { id, blob });
+            return Promise.resolve();
+        }
         return new Promise((resolve, reject) => {
             const transaction = db.transaction(['images'], 'readwrite');
             transaction.oncomplete = () => { console.log(`[saveImage] Transaction complete for ID: ${id}`); resolve(); };
@@ -395,6 +413,10 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function getImage(id) {
+        if (useInMemoryStore) {
+            const data = inMemoryImages.get(id);
+            return Promise.resolve(data ? data.blob : null);
+        }
         return new Promise((resolve, reject) => {
             const transaction = db.transaction(['images'], 'readonly');
             const store = transaction.objectStore('images');
@@ -405,6 +427,10 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     
     function deleteImage(id) {
+        if (useInMemoryStore) {
+            inMemoryImages.delete(id);
+            return Promise.resolve();
+        }
         return new Promise((resolve, reject) => {
             const transaction = db.transaction(['images'], 'readwrite');
             transaction.oncomplete = () => resolve();
@@ -464,7 +490,7 @@ document.addEventListener('DOMContentLoaded', () => {
         startAutoSaveTimer(); // Reset timer on every save action
         try {
             await saveDataToDB('appState', 'mainState', state);
-            if (showNotification) {
+            if (showNotification && !useInMemoryStore) {
                 showToast('Daten erfolgreich gespeichert!');
             }
         } catch (error) {
@@ -572,8 +598,26 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // --- UTILITY FUNCTIONS ---
     function getFormattedDate(date) { return date.toISOString().split('T')[0]; }
-    function showToast(message) { const toast = document.getElementById('toast'); toast.textContent = message; toast.classList.remove('opacity-0'); setTimeout(() => { toast.classList.add('opacity-0'); }, 3000); }
     
+    function showToast(message, type = 'success', duration = 3000) {
+        const toast = document.getElementById('toast');
+        toast.textContent = message;
+        toast.classList.remove('bg-green-500', 'bg-yellow-500', 'bg-red-500');
+
+        if (type === 'warning') {
+            toast.classList.add('bg-yellow-500');
+        } else if (type === 'error') {
+            toast.classList.add('bg-red-500');
+        } else {
+            toast.classList.add('bg-green-500');
+        }
+
+        toast.classList.remove('opacity-0');
+        setTimeout(() => {
+            toast.classList.add('opacity-0');
+        }, duration);
+    }
+
     async function showAlert(message) {
         return new Promise(resolve => {
             const alertWrapper = document.createElement('div');
@@ -2255,12 +2299,24 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('nav-settings').addEventListener('click', renderSettingsModal);
     
     async function init() {
+        let dbInitialized = false;
         try {
             await initDB();
+            dbInitialized = true;
+        } catch (error) {
+            console.warn("IndexedDB not available, falling back to in-memory store. Data will not be persisted.", error);
+            useInMemoryStore = true;
+        }
+
+        try {
             const [theme] = await Promise.all([
                 loadDataFromDB('appSettings', 'theme').catch(() => 'light'),
                 loadState()
             ]);
+
+            if (!dbInitialized) {
+                showToast("Privater Modus: Daten gehen beim Schließen verloren!", "warning", 8000);
+            }
 
             if (state.animals.length === 0 && state.sponsors.length === 0) {
                 await addSampleData();
@@ -2273,8 +2329,7 @@ document.addEventListener('DOMContentLoaded', () => {
             
         } catch (error) {
             console.error("Critical Error on Initialization:", error);
-            document.body.innerHTML = `<div style="padding: 2rem; text-align: center; background-color: #fee2e2; color: #b91c1c;"><h1 style="font-size: 1.5rem; font-weight: bold;">Kritischer Fehler</h1><p style="margin-top: 1rem;">Die App konnte nicht initialisiert werden. Dies kann im privaten Browsing-Modus passieren.</p></div>`;
-            return; 
+            document.body.innerHTML = `<div style="padding: 2rem; text-align: center; background-color: #fee2e2; color: #b91c1c;"><h1 style="font-size: 1.5rem; font-weight: bold;">Kritischer Fehler</h1><p style="margin-top: 1rem;">Die App konnte nicht initialisiert werden. Bitte laden Sie die Seite neu oder verlassen Sie den privaten Browsing-Modus.</p></div>`;
         }
     }
 
